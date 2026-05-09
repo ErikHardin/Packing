@@ -54,16 +54,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 .card { background: white; border: 1.5px solid var(--cream); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px #0001; }
 
 /* FIELD ROW */
-.field-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-@media (max-width: 520px) {
-  .field-row { flex-direction: column; align-items: stretch; }
-  .field-row .f-name,
-  .field-row .f-date,
-  .field-row .f-nights { flex: none !important; width: 100% !important; }
-}
-.f-name   { flex: 2 1 160px; display: flex; flex-direction: column; }
-.f-date   { flex: 1 1 130px; display: flex; flex-direction: column; }
-.f-nights { flex: 0 0 72px;  display: flex; flex-direction: column; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+.f-name { grid-column: 1 / -1; display: flex; flex-direction: column; }
+.f-date { display: flex; flex-direction: column; }
+.f-nights { display: flex; flex-direction: column; }
+.f-remove { display: flex; align-items: flex-end; justify-content: flex-end; grid-column: 1 / -1; }
 
 label.field-label { display: block; font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--soft); margin-bottom: 5px; }
 
@@ -71,6 +66,7 @@ input[type=text], input[type=date], input[type=number] {
   width: 100%; padding: 8px 11px; border: 1.5px solid var(--cream); border-radius: 6px;
   font-family: 'DM Sans', sans-serif; font-size: 0.92rem;
   background: var(--paper); color: var(--ink); outline: none; transition: border-color .2s;
+  -webkit-appearance: none; appearance: none;
 }
 input:focus { border-color: var(--blue); }
 input.confirmed { border-color: var(--green); }
@@ -369,7 +365,8 @@ input.ambiguous { border-color: var(--gold); }
     inputEl.classList.add('confirmed');
     statusEl.textContent = '✓ ' + label;
     statusEl.className = 'disambig-status ok';
-    // Keep picker visible so user can change, but mark selected option
+    // Close the picker
+    pickerEl.innerHTML = '';
   }
 
   /* ── CITY MANAGEMENT ─────────────────────────────────────────── */
@@ -420,10 +417,11 @@ input.ambiguous { border-color: var(--gold); }
       row.appendChild(fName); row.appendChild(fDate); row.appendChild(fNi);
 
       if (cities.length > 1) {
+        var fRm = mk('div', 'f-remove');
         var btnRm = mk('button', 'btn-remove'); btnRm.textContent = '✕'; btnRm.title = 'Remove';
-        btnRm.style.alignSelf = 'flex-end';
         (function (cid) { btnRm.addEventListener('click', function () { removeCity(cid); }); }(city.id));
-        row.appendChild(btnRm);
+        fRm.appendChild(btnRm);
+        row.appendChild(fRm);
       }
 
       card.appendChild(row);
