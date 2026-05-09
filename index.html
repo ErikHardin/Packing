@@ -23,38 +23,88 @@
 
 body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
 
+/* HEADER */
 #app-header {
   background: var(--ink); color: var(--paper);
   padding: 22px 32px 18px; border-bottom: 3px solid var(--accent);
   display: flex; align-items: baseline; gap: 14px;
 }
 #app-header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; }
-#app-header span { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+#app-header .tagline { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
 
+/* TABS */
 #tabs { background: var(--ink2); display: flex; padding: 0 32px; }
 .tab { padding: 10px 18px; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--soft); border-bottom: 3px solid transparent; }
 .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
 .tab.done   { color: #6a8a6a; border-bottom-color: #3a6b4a44; }
 
+/* MAIN */
 #main { max-width: 860px; margin: 0 auto; padding: 34px 18px 80px; }
 
+/* SCREENS */
 .screen { display: none; }
 .screen.active { display: block; animation: fadeUp .3s ease; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 
+/* TYPOGRAPHY */
 .page-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 4px; }
 .page-sub   { color: var(--soft); font-size: 0.88rem; margin-bottom: 24px; }
 
+/* CARDS */
 .card { background: white; border: 1.5px solid var(--cream); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px #0001; }
-.field-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+
+/* FIELD ROW */
+.field-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+@media (max-width: 520px) {
+  .field-row { flex-direction: column; align-items: stretch; }
+  .field-row .f-name,
+  .field-row .f-date,
+  .field-row .f-nights { flex: none !important; width: 100% !important; }
+}
+.f-name   { flex: 2 1 160px; display: flex; flex-direction: column; }
+.f-date   { flex: 1 1 130px; display: flex; flex-direction: column; }
+.f-nights { flex: 0 0 72px;  display: flex; flex-direction: column; }
 
 label.field-label { display: block; font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--soft); margin-bottom: 5px; }
+
 input[type=text], input[type=date], input[type=number] {
   width: 100%; padding: 8px 11px; border: 1.5px solid var(--cream); border-radius: 6px;
-  font-family: 'DM Sans', sans-serif; font-size: 0.92rem; background: var(--paper); color: var(--ink); outline: none; transition: border-color .2s;
+  font-family: 'DM Sans', sans-serif; font-size: 0.92rem;
+  background: var(--paper); color: var(--ink); outline: none; transition: border-color .2s;
 }
 input:focus { border-color: var(--blue); }
+input.confirmed { border-color: var(--green); }
+input.ambiguous { border-color: var(--gold); }
 
+/* DISAMBIGUATION PICKER */
+.disambig-wrap { margin-top: 8px; }
+.disambig-status { font-size: 0.78rem; margin-top: 6px; }
+.disambig-status.searching { color: var(--soft); }
+.disambig-status.ok        { color: var(--green); font-weight: 600; }
+.disambig-status.error     { color: var(--red); }
+
+.disambig-picker {
+  margin-top: 8px; border: 1.5px solid var(--blue); border-radius: 8px;
+  overflow: hidden; background: #f0f5fa;
+}
+.disambig-header {
+  padding: 7px 12px; font-size: 0.68rem; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 700; color: var(--blue);
+  background: #deeaf5; border-bottom: 1px solid #c4d8ed;
+}
+.disambig-option {
+  padding: 9px 14px; font-size: 0.86rem; cursor: pointer;
+  border-bottom: 1px solid #d4e6f3;
+  display: flex; align-items: center; gap: 8px;
+  transition: background .12s;
+}
+.disambig-option:last-child { border-bottom: none; }
+.disambig-option:hover { background: #cce0f0; }
+.disambig-option.sel  { background: var(--blue); color: white; font-weight: 600; }
+.disambig-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+.disambig-option.sel .disambig-dot { background: white; }
+
+/* BUTTONS */
 .btn { display: inline-block; padding: 10px 22px; border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; border: none; transition: all .15s; }
 .btn-primary   { background: var(--accent); color: white; }
 .btn-primary:hover { background: #a84e24; }
@@ -62,64 +112,63 @@ input:focus { border-color: var(--blue); }
 .btn-secondary:hover { border-color: var(--ink); }
 .btn-ghost     { background: transparent; color: var(--blue); border: 1.5px dashed var(--blue); }
 .btn-ghost:hover { background: #e8f0f7; }
-.btn-remove    { background: none; border: 1.5px solid #ddd; border-radius: 6px; padding: 7px 10px; cursor: pointer; color: var(--soft); font-size: 0.9rem; }
+.btn-remove    { background: none; border: 1.5px solid #ddd; border-radius: 6px; padding: 7px 10px; cursor: pointer; color: var(--soft); font-size: 0.9rem; flex-shrink: 0; }
 .btn-remove:hover { border-color: var(--red); color: var(--red); }
 .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
 
+/* ACTIVITY CHIPS */
 .day-block { background: white; border: 1.5px solid var(--cream); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
-.day-label { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.day-label { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .day-label-sub { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); font-weight: 700; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border: 1.5px solid var(--cream); border-radius: 30px; cursor: pointer; font-size: 0.83rem; font-weight: 500; background: var(--paper); color: var(--ink); user-select: none; transition: all .15s; }
 .chip.on { background: var(--blue); border-color: var(--blue); color: white; }
 
+/* WEATHER BAR */
 #wx-bar { background: var(--ink2); color: var(--paper); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: none; }
 #wx-bar.show { display: block; }
 .wx-heading { color: var(--gold); font-weight: 700; margin-bottom: 10px; font-size: 0.88rem; }
-.wx-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #ffffff14; font-size: 0.85rem; }
+.wx-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #ffffff14; font-size: 0.85rem; flex-wrap: wrap; gap: 6px; }
 .wx-row:last-child { border-bottom: none; }
-.wx-badge { background: #ffffff18; padding: 2px 9px; border-radius: 20px; font-weight: 700; font-size: 0.78rem; margin-left: 6px; }
+.wx-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.wx-badge { background: #ffffff18; padding: 2px 9px; border-radius: 20px; font-weight: 700; font-size: 0.78rem; }
 
-#pack-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; display: none; }
+/* PACK CONTROLS */
+#pack-controls { display: none; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
 #progress-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--soft); }
 #progress-track { width: 100px; height: 5px; background: var(--cream); border-radius: 3px; overflow: hidden; }
 #progress-fill  { height: 100%; width: 0%; background: var(--green); border-radius: 3px; transition: width .4s; }
 
+/* PACKING LIST */
 .pack-section { margin-bottom: 26px; }
 .pack-section-title { display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-size: 1.12rem; font-weight: 700; padding-bottom: 8px; border-bottom: 2px solid var(--cream); margin-bottom: 10px; }
 .pack-count { font-family: 'DM Sans', sans-serif; font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); font-weight: 600; margin-left: auto; }
 .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px; }
 .pack-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
 .pack-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
-.pack-item span { font-size: 0.87rem; }
+.pack-item .item-label { font-size: 0.87rem; }
 .pack-item.done { opacity: 0.45; }
-.pack-item.done span { text-decoration: line-through; color: var(--soft); }
+.pack-item.done .item-label { text-decoration: line-through; color: var(--soft); }
 
-.error { background: #fff0ef; border: 1.5px solid #f0b0a0; color: var(--red); border-radius: 7px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 14px; display: none; }
-.error.show { display: block; }
-
+/* MISC */
+.global-error { background: #fff0ef; border: 1.5px solid #f0b0a0; color: var(--red); border-radius: 7px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 14px; display: none; }
+.global-error.show { display: block; }
 #loading-msg { text-align: center; padding: 40px 0; color: var(--soft); display: none; }
 #loading-msg.show { display: block; }
-
-@media (max-width: 600px) {
-  #app-header { padding: 16px 18px; }
-  #app-header h1 { font-size: 1.5rem; }
-  #main { padding: 24px 12px 60px; }
-}
 </style>
 </head>
 <body>
 
 <div id="app-header">
   <h1>✈ PackRight</h1>
-  <span>What to Wear</span>
+  <span class="tagline">What to Wear</span>
 </div>
 
 <div id="tabs">
-  <div class="tab active" data-tab="1">1 · Destinations</div>
-  <div class="tab"        data-tab="2">2 · Activities</div>
-  <div class="tab"        data-tab="3">3 · Packing List</div>
+  <div class="tab active">1 · Destinations</div>
+  <div class="tab">2 · Activities</div>
+  <div class="tab">3 · Packing List</div>
 </div>
 
 <div id="main">
@@ -127,8 +176,8 @@ input:focus { border-color: var(--blue); }
   <!-- SCREEN 1 -->
   <div class="screen active" id="screen-1">
     <div class="page-title">Where are you headed?</div>
-    <div class="page-sub">Add each destination, arrival date, and number of nights.</div>
-    <div class="error" id="err-1">Please enter a city name for every destination.</div>
+    <div class="page-sub">Enter each destination — we'll look it up so you get the right weather.</div>
+    <div class="global-error" id="err-1"></div>
     <div id="city-list"></div>
     <button class="btn btn-ghost" id="add-city-btn">+ Add Another Destination</button>
     <div class="btn-row">
@@ -143,7 +192,7 @@ input:focus { border-color: var(--blue); }
     <div id="day-blocks"></div>
     <div class="btn-row">
       <button class="btn btn-secondary" id="back-to-1-btn">← Back</button>
-      <button class="btn btn-primary"   id="generate-btn">Get Weather &amp; Build Packing List →</button>
+      <button class="btn btn-primary" id="generate-btn">Get Weather &amp; Build Packing List →</button>
     </div>
   </div>
 
@@ -151,7 +200,10 @@ input:focus { border-color: var(--blue); }
   <div class="screen" id="screen-3">
     <div class="page-title">Your Packing List</div>
     <div class="page-sub">Clothing and footwear tailored to your activities and weather.</div>
-    <div id="wx-bar"><div class="wx-heading">🌤 Weather Forecast</div><div id="wx-rows"></div></div>
+    <div id="wx-bar">
+      <div class="wx-heading">🌤 Weather Forecast</div>
+      <div id="wx-rows"></div>
+    </div>
     <div id="pack-controls">
       <button class="btn btn-secondary" id="back-to-2-btn">← Edit Activities</button>
       <button class="btn btn-secondary" id="check-all-btn">✓ Check All</button>
@@ -171,6 +223,7 @@ input:focus { border-color: var(--blue); }
 (function () {
   'use strict';
 
+  /* ── ACTIVITIES ─────────────────────────────────────────────── */
   var ACTIVITIES = [
     { id: 'business',  label: 'Business / Work',   icon: '💼' },
     { id: 'pool',      label: 'Pool / Beach',       icon: '🏖️' },
@@ -186,12 +239,20 @@ input:focus { border-color: var(--blue); }
     { id: 'family',    label: 'Family / Kids',      icon: '👨‍👩‍👧' },
   ];
 
-  var _nextId  = 0;
-  var cities   = [];
-  var dayActs  = {};
+  /* ── STATE ──────────────────────────────────────────────────── */
+  var _nextId   = 0;
+  var cities    = [];   // [{ id, name, nights, startDate, geo: {lat,lon,label} | null }]
+  var dayActs   = {};   // { "cityId-day": { actId: bool } }
   var packItems = [];
 
-  function nextId() { return ++_nextId; }
+  /* ── HELPERS ────────────────────────────────────────────────── */
+  function uid()  { return ++_nextId; }
+
+  function mk(tag, cls) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    return e;
+  }
 
   function todayPlus(n) {
     var d = new Date();
@@ -205,17 +266,11 @@ input:focus { border-color: var(--blue); }
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  function mk(tag, cls) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    return e;
-  }
-
   function unique(arr) {
     return arr.filter(function (v, i, a) { return a.indexOf(v) === i; });
   }
 
-  /* NAV */
+  /* ── SCREEN NAV ─────────────────────────────────────────────── */
   function goTo(n) {
     document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
     document.getElementById('screen-' + n).classList.add('active');
@@ -227,9 +282,100 @@ input:focus { border-color: var(--blue); }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /* CITIES */
+  /* ── GEOCODING ───────────────────────────────────────────────── */
+  // Debounce timers keyed by city id
+  var geoTimers = {};
+
+  function geocodeCity(city, inputEl, statusEl, pickerEl) {
+    var name = city.name.trim();
+    if (!name) {
+      city.geo = null;
+      inputEl.classList.remove('confirmed', 'ambiguous');
+      statusEl.textContent = '';
+      statusEl.className = 'disambig-status';
+      pickerEl.innerHTML = '';
+      return;
+    }
+
+    statusEl.textContent = 'Looking up…';
+    statusEl.className = 'disambig-status searching';
+    inputEl.classList.remove('confirmed', 'ambiguous');
+    pickerEl.innerHTML = '';
+    city.geo = null;
+
+    fetch('https://geocoding-api.open-meteo.com/v1/search?name=' +
+      encodeURIComponent(name) + '&count=5&language=en&format=json')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var results = data.results || [];
+        if (results.length === 0) {
+          statusEl.textContent = 'City not found — check the spelling.';
+          statusEl.className = 'disambig-status error';
+          return;
+        }
+
+        if (results.length === 1) {
+          // Unambiguous — auto-confirm
+          selectGeo(city, results[0], inputEl, statusEl, pickerEl);
+          return;
+        }
+
+        // Multiple results — show picker
+        inputEl.classList.add('ambiguous');
+        statusEl.textContent = 'Multiple matches found — please pick one:';
+        statusEl.className = 'disambig-status error';
+        pickerEl.innerHTML = '';
+
+        var header = mk('div', 'disambig-header');
+        header.textContent = 'Which ' + results[0].name + ' do you mean?';
+        pickerEl.appendChild(header);
+
+        results.forEach(function (r) {
+          var label = r.name;
+          if (r.admin1) label += ', ' + r.admin1;
+          if (r.country) label += ', ' + r.country;
+
+          var opt = mk('div', 'disambig-option');
+          var dot = mk('span', 'disambig-dot');
+          var txt = mk('span');
+          txt.textContent = label;
+          opt.appendChild(dot);
+          opt.appendChild(txt);
+
+          (function (result) {
+            opt.addEventListener('click', function () {
+              pickerEl.querySelectorAll('.disambig-option').forEach(function (o) { o.classList.remove('sel'); });
+              opt.classList.add('sel');
+              selectGeo(city, result, inputEl, statusEl, pickerEl);
+            });
+          }(r));
+
+          pickerEl.appendChild(opt);
+        });
+      })
+      .catch(function () {
+        statusEl.textContent = 'Lookup failed — will use general recommendations.';
+        statusEl.className = 'disambig-status error';
+      });
+  }
+
+  function selectGeo(city, result, inputEl, statusEl, pickerEl) {
+    city.geo = { lat: result.latitude, lon: result.longitude };
+    var label = result.name;
+    if (result.admin1) label += ', ' + result.admin1;
+    if (result.country) label += ', ' + result.country;
+    city.geoLabel = label;
+    inputEl.classList.remove('ambiguous');
+    inputEl.classList.add('confirmed');
+    statusEl.textContent = '✓ ' + label;
+    statusEl.className = 'disambig-status ok';
+    // Keep picker visible so user can change, but mark selected option
+  }
+
+  /* ── CITY MANAGEMENT ─────────────────────────────────────────── */
   function addCity() {
-    cities.push({ id: nextId(), name: '', nights: 4, startDate: todayPlus(14) });
+    var city = { id: uid(), name: '', nights: 4, startDate: todayPlus(14), geo: null, geoLabel: '' };
+    cities.push(city);
     renderCities();
   }
 
@@ -241,26 +387,31 @@ input:focus { border-color: var(--blue); }
   function renderCities() {
     var list = document.getElementById('city-list');
     list.innerHTML = '';
+
     cities.forEach(function (city) {
       var card = mk('div', 'card');
-      var row  = mk('div', 'field-row');
 
-      // Name field
-      var fName = mk('div'); fName.style.cssText = 'flex:2 1 160px;display:flex;flex-direction:column;';
+      // ── Field row ──
+      var row = mk('div', 'field-row');
+
+      // City name
+      var fName = mk('div', 'f-name');
       var lName = mk('label', 'field-label'); lName.textContent = 'City / Destination';
-      var iName = mk('input'); iName.type = 'text'; iName.placeholder = 'e.g. Paris, France'; iName.value = city.name;
-      iName.addEventListener('input', function () { city.name = iName.value; });
+      var iName = mk('input'); iName.type = 'text';
+      iName.placeholder = 'e.g. Cleveland OH, Paris France';
+      iName.value = city.name;
+      if (city.geo) iName.classList.add('confirmed');
       fName.appendChild(lName); fName.appendChild(iName);
 
-      // Date field
-      var fDate = mk('div'); fDate.style.cssText = 'flex:1 1 130px;display:flex;flex-direction:column;';
+      // Date
+      var fDate = mk('div', 'f-date');
       var lDate = mk('label', 'field-label'); lDate.textContent = 'Arrival Date';
       var iDate = mk('input'); iDate.type = 'date'; iDate.value = city.startDate;
       iDate.addEventListener('change', function () { city.startDate = iDate.value; });
       fDate.appendChild(lDate); fDate.appendChild(iDate);
 
-      // Nights field
-      var fNi = mk('div'); fNi.style.cssText = 'flex:0 0 75px;display:flex;flex-direction:column;';
+      // Nights
+      var fNi = mk('div', 'f-nights');
       var lNi = mk('label', 'field-label'); lNi.textContent = 'Nights';
       var iNi = mk('input'); iNi.type = 'number'; iNi.min = 1; iNi.max = 30; iNi.value = city.nights;
       iNi.addEventListener('change', function () { city.nights = Math.max(1, parseInt(iNi.value, 10) || 1); });
@@ -269,25 +420,67 @@ input:focus { border-color: var(--blue); }
       row.appendChild(fName); row.appendChild(fDate); row.appendChild(fNi);
 
       if (cities.length > 1) {
-        var btnRm = mk('button', 'btn-remove');
-        btnRm.textContent = '✕'; btnRm.title = 'Remove';
+        var btnRm = mk('button', 'btn-remove'); btnRm.textContent = '✕'; btnRm.title = 'Remove';
         btnRm.style.alignSelf = 'flex-end';
         (function (cid) { btnRm.addEventListener('click', function () { removeCity(cid); }); }(city.id));
         row.appendChild(btnRm);
       }
 
       card.appendChild(row);
+
+      // ── Disambiguation area ──
+      var disambigWrap = mk('div', 'disambig-wrap');
+      var statusEl = mk('div', 'disambig-status');
+      var pickerEl = mk('div', 'disambig-picker');
+
+      // Restore status if already resolved
+      if (city.geo && city.geoLabel) {
+        iName.classList.add('confirmed');
+        statusEl.textContent = '✓ ' + city.geoLabel;
+        statusEl.className = 'disambig-status ok';
+      }
+
+      disambigWrap.appendChild(statusEl);
+      disambigWrap.appendChild(pickerEl);
+      card.appendChild(disambigWrap);
       list.appendChild(card);
+
+      // Wire up geocode on blur / enter
+      var debounceMs = 600;
+      function triggerGeocode() {
+        city.name = iName.value;
+        clearTimeout(geoTimers[city.id]);
+        geoTimers[city.id] = setTimeout(function () {
+          geocodeCity(city, iName, statusEl, pickerEl);
+        }, debounceMs);
+      }
+
+      iName.addEventListener('input', triggerGeocode);
+      iName.addEventListener('blur', function () {
+        clearTimeout(geoTimers[city.id]);
+        city.name = iName.value;
+        if (city.name.trim() && !city.geo) {
+          geocodeCity(city, iName, statusEl, pickerEl);
+        }
+      });
     });
   }
 
-  /* ACTIVITIES */
+  /* ── ACTIVITIES ──────────────────────────────────────────────── */
   function goToActivities() {
     var errEl = document.getElementById('err-1');
+    errEl.classList.remove('show');
+    errEl.textContent = '';
+
     if (cities.length === 0 || cities.some(function (c) { return !c.name.trim(); })) {
+      errEl.textContent = 'Please enter a city name for every destination.';
       errEl.classList.add('show'); return;
     }
-    errEl.classList.remove('show');
+    if (cities.some(function (c) { return !c.geo; })) {
+      errEl.textContent = 'Please wait for city lookup to complete, or pick from the options shown.';
+      errEl.classList.add('show'); return;
+    }
+
     buildDayBlocks();
     goTo(2);
   }
@@ -302,17 +495,18 @@ input:focus { border-color: var(--blue); }
 
         var block = mk('div', 'day-block');
         var titleDiv = mk('div', 'day-label');
-        titleDiv.appendChild(document.createTextNode(city.name + ' '));
+        var cityName = mk('span'); cityName.textContent = city.name;
         var sub = mk('span', 'day-label-sub');
         sub.textContent = 'Day ' + (d + 1) + ' · ' + labelDate(city.startDate, d);
+        titleDiv.appendChild(cityName);
         titleDiv.appendChild(sub);
         block.appendChild(titleDiv);
 
         var chipsDiv = mk('div', 'chips');
         ACTIVITIES.forEach(function (a) {
           var chip = mk('div', 'chip' + (dayActs[key][a.id] ? ' on' : ''));
-          var iconSpan = mk('span'); iconSpan.textContent = a.icon;
-          chip.appendChild(iconSpan);
+          var icon = mk('span'); icon.textContent = a.icon;
+          chip.appendChild(icon);
           chip.appendChild(document.createTextNode(' ' + a.label));
           (function (k, aid, ch) {
             ch.addEventListener('click', function () {
@@ -328,73 +522,52 @@ input:focus { border-color: var(--blue); }
     });
   }
 
-  /* WEATHER — using Open-Meteo (no API key required) */
+  /* ── WEATHER FETCH ───────────────────────────────────────────── */
+  // Uses pre-resolved lat/lon from disambiguation — no second geocode needed
   function fetchWeather(city) {
-    var geoUrl = 'https://geocoding-api.open-meteo.com/v1/search?name=' +
-      encodeURIComponent(city.name) + '&count=1&language=en&format=json';
+    if (!city.geo) return Promise.resolve(null);
 
-    return fetch(geoUrl)
-      .then(function (r) {
-        if (!r.ok) throw new Error('Geo fetch failed');
-        return r.json();
-      })
-      .then(function (g) {
-        if (!g.results || g.results.length === 0) throw new Error('City not found');
-        var lat = g.results[0].latitude;
-        var lon = g.results[0].longitude;
+    var endDate = new Date(city.startDate + 'T12:00:00');
+    endDate.setDate(endDate.getDate() + Math.max(city.nights - 1, 0));
+    var endStr = endDate.toISOString().split('T')[0];
 
-        // Build date range
-        var start = city.startDate; // already YYYY-MM-DD
-        var endDate = new Date(city.startDate + 'T12:00:00');
-        endDate.setDate(endDate.getDate() + Math.max(city.nights - 1, 0));
-        var end = endDate.toISOString().split('T')[0];
+    var url = 'https://api.open-meteo.com/v1/forecast' +
+      '?latitude='  + city.geo.lat +
+      '&longitude=' + city.geo.lon +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode' +
+      '&temperature_unit=fahrenheit&timezone=auto' +
+      '&start_date=' + city.startDate +
+      '&end_date='   + endStr;
 
-        var wxUrl = 'https://api.open-meteo.com/v1/forecast' +
-          '?latitude=' + lat +
-          '&longitude=' + lon +
-          '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode' +
-          '&temperature_unit=fahrenheit' +
-          '&timezone=auto' +
-          '&start_date=' + start +
-          '&end_date=' + end;
-
-        return fetch(wxUrl);
-      })
-      .then(function (r) {
-        if (!r.ok) throw new Error('Weather fetch failed');
-        return r.json();
-      })
+    return fetch(url)
+      .then(function (r) { return r.json(); })
       .then(function (w) {
-        if (!w.daily || !w.daily.temperature_2m_max || w.daily.temperature_2m_max.length === 0) {
-          throw new Error('No daily data');
-        }
-        var hi = w.daily.temperature_2m_max;
-        var lo = w.daily.temperature_2m_min;
-        var pr = w.daily.precipitation_probability_max || [];
-        var co = w.daily.weathercode || [];
+        var hi = (w.daily && w.daily.temperature_2m_max) || [];
+        var lo = (w.daily && w.daily.temperature_2m_min) || [];
+        var pr = (w.daily && w.daily.precipitation_probability_max) || [];
+        var co = (w.daily && w.daily.weathercode) || [];
+        if (!hi.length) return null;
         var sum = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
         return {
           avgHigh: Math.round(sum(hi) / hi.length),
           avgLow:  Math.round(sum(lo) / lo.length),
           maxRain: pr.length ? Math.max.apply(null, pr) : 0,
           maxCode: co.length ? Math.max.apply(null, co) : 0,
+          label:   city.geoLabel || city.name,
         };
       })
-      .catch(function (err) {
-        console.warn('Weather fetch error for ' + city.name + ':', err.message);
-        return null;
-      });
+      .catch(function () { return null; });
   }
 
   function wxLabel(code, rain) {
     if (rain > 60 || (code >= 61 && code < 71)) return { text: 'Rainy',   icon: '🌧️' };
-    if (code >= 71)                               return { text: 'Snow',    icon: '❄️'  };
-    if (code >= 51)                               return { text: 'Drizzle', icon: '🌦️' };
-    if (code >= 2)                                return { text: 'Cloudy',  icon: '☁️'  };
-    return                                               { text: 'Clear',   icon: '☀️'  };
+    if (code >= 71)                              return { text: 'Snow',    icon: '❄️'  };
+    if (code >= 51)                              return { text: 'Drizzle', icon: '🌦️' };
+    if (code >= 2)                               return { text: 'Cloudy',  icon: '☁️'  };
+    return                                              { text: 'Clear',   icon: '☀️'  };
   }
 
-  /* PACKING LIST — clothing & footwear only */
+  /* ── PACKING LIST ────────────────────────────────────────────── */
   function buildPackingList(wxMap) {
     var allActs = {};
     cities.forEach(function (city) {
@@ -416,38 +589,28 @@ input:focus { border-color: var(--blue); }
 
     var sections = [];
 
-    /* ── CLOTHING ── */
+    /* CLOTHING */
     var cl = [];
-
-    // Base tops
     cl.push('T-shirts / casual tops (x' + Math.min(nights + 1, 8) + ')');
     if (cold) {
       cl.push('Thermal base layer tops (x2)');
       cl.push('Warm sweaters or fleece (x' + Math.min(3, Math.ceil(nights / 2)) + ')');
     }
     if (!hot) cl.push('Long-sleeve shirts (x' + Math.ceil(nights / 2) + ')');
-
-    // Underwear & socks
     cl.push('Underwear (x' + Math.min(nights + 2, 10) + ')');
     cl.push('Socks (x' + Math.min(nights + 2, 10) + ')');
     if (allActs.hiking || allActs.sports) cl.push('Athletic / no-show socks (x' + Math.min(nights, 5) + ')');
     if (cold) cl.push('Wool or thermal socks (x3)');
-
-    // Bottoms
-    if (hot) cl.push('Shorts (x' + Math.min(Math.ceil(nights / 2), 4) + ')');
+    if (hot)  cl.push('Shorts (x' + Math.min(Math.ceil(nights / 2), 4) + ')');
     cl.push('Pants / jeans (x' + Math.min(Math.ceil(nights / 2), 3) + ')');
     if (cold) cl.push('Thermal / fleece-lined pants');
     if (allActs.hiking) cl.push('Hiking pants or convertible pants');
     if (allActs.sports) cl.push('Athletic shorts or leggings');
-    if (allActs.pool) cl.push('Swimsuit / swim trunks');
-
-    // Outerwear
-    if (cold) cl.push('Heavy winter coat or parka');
+    if (allActs.pool)   cl.push('Swimsuit / swim trunks');
+    if (cold)      cl.push('Heavy winter coat or parka');
     else if (mild) cl.push('Light jacket or zip-up');
     if (rainy) cl.push('Waterproof rain jacket');
     if (allActs.hiking && (cold || mild)) cl.push('Fleece or insulating mid-layer');
-
-    // Dress / occasion clothing
     if (allActs.business) {
       cl.push('Dress shirts / blouses (x' + Math.ceil(nights / 2) + ')');
       cl.push('Suit jacket or blazer');
@@ -457,18 +620,16 @@ input:focus { border-color: var(--blue); }
     if (allActs.concert || allActs.nightlife) cl.push('Going-out outfit / evening wear');
     if (allActs.wine || allActs.dining) cl.push('Smart casual outfit (x' + (allActs.business ? 1 : 2) + ')');
     if (allActs.pool) cl.push('Cover-up or beach wrap');
-
-    // Accessories
-    if (hot) cl.push('Sun hat or baseball cap');
-    if (cold) cl.push('Winter hat (beanie)');
-    if (cold) cl.push('Gloves or mittens');
-    if (cold) cl.push('Scarf');
+    if (hot)   cl.push('Sun hat or baseball cap');
+    if (cold)  cl.push('Winter hat (beanie)');
+    if (cold)  cl.push('Gloves or mittens');
+    if (cold)  cl.push('Scarf');
     if (rainy) cl.push('Compact travel umbrella');
     if (allActs.sports) cl.push('Athletic top / workout shirt (x' + Math.min(nights, 4) + ')');
 
     sections.push({ title: 'Clothing', icon: '👕', items: unique(cl) });
 
-    /* ── FOOTWEAR ── */
+    /* FOOTWEAR */
     var sh = ['Comfortable walking shoes'];
     if (allActs.business)  sh.push('Dress shoes');
     if (allActs.hiking)    sh.push('Hiking boots or trail shoes');
@@ -482,7 +643,7 @@ input:focus { border-color: var(--blue); }
     return sections;
   }
 
-  /* RENDER */
+  /* ── RENDER PACKING LIST ─────────────────────────────────────── */
   function renderPackingList(sections) {
     packItems = [];
     var container = document.getElementById('pack-list');
@@ -492,31 +653,25 @@ input:focus { border-color: var(--blue); }
       var div = mk('div', 'pack-section');
 
       var titleRow = mk('div', 'pack-section-title');
-      var iconSpan = mk('span'); iconSpan.textContent = sec.icon;
-      titleRow.appendChild(iconSpan);
+      var icon = mk('span'); icon.textContent = sec.icon;
+      titleRow.appendChild(icon);
       titleRow.appendChild(document.createTextNode(' ' + sec.title));
-      var countEl = mk('span', 'pack-count');
-      countEl.textContent = sec.items.length + ' items';
-      titleRow.appendChild(countEl);
+      var cnt = mk('span', 'pack-count'); cnt.textContent = sec.items.length + ' items';
+      titleRow.appendChild(cnt);
       div.appendChild(titleRow);
 
       var grid = mk('div', 'pack-grid');
-      sec.items.forEach(function (item, ii) {
+      sec.items.forEach(function (item) {
         var row = mk('div', 'pack-item');
         var cb  = mk('input'); cb.type = 'checkbox';
-        var lbl = mk('span'); lbl.textContent = item;
-
+        var lbl = mk('span', 'item-label'); lbl.textContent = item;
         cb.addEventListener('change', function () {
           row.classList.toggle('done', cb.checked);
           updateProgress();
         });
         row.addEventListener('click', function (e) {
-          if (e.target !== cb) {
-            cb.checked = !cb.checked;
-            cb.dispatchEvent(new Event('change'));
-          }
+          if (e.target !== cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
         });
-
         row.appendChild(cb); row.appendChild(lbl);
         grid.appendChild(row);
         packItems.push({ cb: cb, row: row });
@@ -537,18 +692,17 @@ input:focus { border-color: var(--blue); }
     document.getElementById('progress-text').textContent = checked + ' / ' + total + ' packed';
   }
 
-  /* GENERATE */
+  /* ── GENERATE ────────────────────────────────────────────────── */
   function generate() {
-    var genBtn  = document.getElementById('generate-btn');
-    genBtn.disabled = true;
-    genBtn.textContent = 'Fetching weather…';
+    var genBtn = document.getElementById('generate-btn');
+    genBtn.disabled = true; genBtn.textContent = 'Fetching weather…';
 
     goTo(3);
 
-    var wxBar   = document.getElementById('wx-bar');
+    var wxBar    = document.getElementById('wx-bar');
     var wxRowsEl = document.getElementById('wx-rows');
-    var loadMsg = document.getElementById('loading-msg');
-    var ctrls   = document.getElementById('pack-controls');
+    var loadMsg  = document.getElementById('loading-msg');
+    var ctrls    = document.getElementById('pack-controls');
 
     wxBar.classList.add('show');
     wxRowsEl.innerHTML = '';
@@ -565,20 +719,21 @@ input:focus { border-color: var(--blue); }
           wxMap[city.id] = wx;
 
           var row = mk('div', 'wx-row');
-          var nameSpan = mk('span'); nameSpan.textContent = city.name;
+          var nameSpan = mk('span');
+          nameSpan.textContent = city.geoLabel || city.name;
           row.appendChild(nameSpan);
 
-          var right = mk('span');
+          var badges = mk('span', 'wx-badges');
           if (wx) {
             var cond = wxLabel(wx.maxCode, wx.maxRain);
             var b1 = mk('span', 'wx-badge'); b1.textContent = wx.avgHigh + '°F high / ' + wx.avgLow + '°F low';
             var b2 = mk('span', 'wx-badge'); b2.textContent = cond.icon + ' ' + cond.text + ' · Rain ' + wx.maxRain + '%';
-            right.appendChild(b1); right.appendChild(b2);
+            badges.appendChild(b1); badges.appendChild(b2);
           } else {
-            right.style.color = '#f0a060'; right.style.fontSize = '0.78rem';
-            right.textContent = 'Weather unavailable — using general recommendations';
+            badges.style.color = '#f0a060'; badges.style.fontSize = '0.78rem';
+            badges.textContent = 'Weather unavailable — using general recommendations';
           }
-          row.appendChild(right);
+          row.appendChild(badges);
           wxRowsEl.appendChild(row);
         });
       });
@@ -594,7 +749,7 @@ input:focus { border-color: var(--blue); }
     });
   }
 
-  /* INIT */
+  /* ── INIT ────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     addCity();
 
@@ -603,12 +758,10 @@ input:focus { border-color: var(--blue); }
     document.getElementById('back-to-1-btn').addEventListener('click', function () { goTo(1); });
     document.getElementById('generate-btn').addEventListener('click', generate);
     document.getElementById('back-to-2-btn').addEventListener('click', function () { goTo(2); });
-
     document.getElementById('check-all-btn').addEventListener('click', function () {
       packItems.forEach(function (p) { p.cb.checked = true; p.row.classList.add('done'); });
       updateProgress();
     });
-
     document.getElementById('reset-btn').addEventListener('click', function () {
       packItems.forEach(function (p) { p.cb.checked = false; p.row.classList.remove('done'); });
       updateProgress();
