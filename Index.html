@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PackRight — Smart Trip Packing</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a2e;
+    --ink2: #2d2d44;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --accent: #c4622d;
+    --accent2: #3d6b8f;
+    --gold: #c9a84c;
+    --soft: #8a8070;
+    --green: #3a6b4a;
+    --red: #b03a2e;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 40px 22px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    border-bottom: 3px solid var(--accent);
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    letter-spacing: -0.5px;
+  }
+  header span {
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    background: var(--ink2);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+  }
+  .step-tab {
+    padding: 12px 24px;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--soft);
+    border-bottom: 3px solid transparent;
+    cursor: default;
+    transition: all 0.2s;
+  }
+  .step-tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+  .step-tab.done {
+    color: #6a8a6a;
+    border-bottom-color: #3a6b4a44;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    color: var(--soft);
+    font-size: 0.9rem;
+    margin-bottom: 28px;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp 0.35s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CITY CARDS ── */
+  #cities-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+
+  .city-card {
+    background: white;
+    border: 1.5px solid var(--cream);
+    border-radius: 10px;
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+    box-shadow: 0 2px 8px #0001;
+    transition: border-color 0.2s;
+  }
+  .city-card:hover { border-color: var(--accent2); }
+
+  .field label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--soft);
+    margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--cream);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent2); }
+
+  .btn-remove {
+    background: none;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    color: var(--soft);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+  .btn-remove:hover { border-color: var(--red); color: var(--red); background: #fff0ef; }
+
+  /* ── ACTIVITY GRID ── */
+  .day-block {
+    background: white;
+    border: 1.5px solid var(--cream);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .day-block h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-block h3 span {
+    font-family: 'DM Sans', sans-serif;
+    font-style: normal;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--soft);
+    font-weight: 600;
+  }
+
+  .activities-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .activity-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1.5px solid var(--cream);
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.18s;
+    user-select: none;
+    background: var(--paper);
+  }
+  .activity-chip:hover { border-color: var(--accent2); color: var(--accent2); }
+  .activity-chip.selected {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: white;
+  }
+  .activity-chip .icon { font-size: 1rem; }
+
+  /* ── BUTTONS ── */
+  .btn-row { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+
+  .btn {
+    padding: 12px 26px;
+    border: none;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: #a84e24; transform: translateY(-1px); box-shadow: 0 4px 14px #c4622d44; }
+  .btn-secondary {
+    background: white;
+    color: var(--ink);
+    border: 1.5px solid var(--cream);
+  }
+  .btn-secondary:hover { border-color: var(--ink); }
+  .btn-ghost {
+    background: none;
+    color: var(--accent2);
+    border: 1.5px dashed var(--accent2);
+  }
+  .btn-ghost:hover { background: #e8f0f7; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ── WEATHER STATUS ── */
+  #weather-status {
+    background: var(--ink2);
+    color: var(--paper);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  #weather-status.show { display: block; }
+  .weather-city-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #ffffff18;
+    font-size: 0.88rem;
+  }
+  .weather-city-row:last-child { border-bottom: none; }
+  .weather-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .badge-hot { background: #c4622d33; color: #f0a060; }
+  .badge-warm { background: #c9a84c33; color: #dfc070; }
+  .badge-mild { background: #3d6b8f33; color: #80b0d0; }
+  .badge-cold { background: #6060a033; color: #a0a0d0; }
+  .badge-rain { background: #2060a033; color: #60a0d0; }
+
+  /* ── PACKING LIST ── */
+  .packing-section {
+    margin-bottom: 32px;
+  }
+  .packing-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--cream);
+    margin-bottom: 14px;
+  }
+  .packing-section-title .cat-icon { font-size: 1.2rem; }
+  .packing-section-title .count {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--soft);
+    font-weight: 600;
+    margin-left: auto;
+  }
+
+  .pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+  }
+
+  .pack-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .pack-item:hover { background: var(--cream); }
+  .pack-item.packed { opacity: 0.45; }
+
+  .pack-item input[type=checkbox] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .pack-item label {
+    font-size: 0.9rem;
+    cursor: pointer;
+    flex: 1;
+  }
+  .pack-item.packed label { text-decoration: line-through; color: var(--soft); }
+
+  /* ── WEATHER INFO BAR ── */
+  .weather-summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .weather-pill {
+    background: white;
+    border: 1.5px solid var(--cream);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .weather-pill strong { font-size: 1rem; color: var(--accent2); }
+  .weather-pill small { color: var(--soft); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .pack-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .pack-controls .progress-text {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--soft);
+    font-weight: 500;
+  }
+
+  .progress-ring {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--soft);
+  }
+  .ring-bar {
+    width: 120px;
+    height: 6px;
+    background: var(--cream);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .ring-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #ffffff44;
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: #fff0ef;
+    border: 1.5px solid #f0b0a0;
+    color: var(--red);
+    border-radius: 7px;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    margin-bottom: 14px;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    header .progress-bar, .btn-row, .pack-controls { display: none !important; }
+    body { background: white; }
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 18px 20px; }
+    header h1 { font-size: 1.5rem; }
+    .city-card { grid-template-columns: 1fr; }
+    main { padding: 24px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✈ PackRight</h1>
+  <span>Smart Trip Packing</span>
+</header>
+
+<div class="progress-bar">
+  <div class="step-tab active" id="tab-1">1 · Destinations</div>
+  <div class="step-tab" id="tab-2">2 · Activities</div>
+  <div class="step-tab" id="tab-3">3 · Packing List</div>
+</div>
+
+<main>
+
+  <!-- ─── SCREEN 1: CITIES ─── -->
+  <div class="screen active" id="screen-1">
+    <h2 class="section-title">Where are you headed?</h2>
+    <p class="section-sub">Add each destination, your travel dates, and number of nights.</p>
+
+    <div id="cities-list"></div>
+
+    <button class="btn btn-ghost" onclick="addCity()">+ Add Another Destination</button>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToActivities()">Continue to Activities →</button>
+    </div>
+  </div>
+
+  <!-- ─── SCREEN 2: ACTIVITIES ─── -->
+  <div class="screen" id="screen-2">
+    <h2 class="section-title">Plan your days</h2>
+    <p class="section-sub">Select what you'll be doing each day so we can tailor your packing list.</p>
+
+    <div id="days-container"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-primary" id="btn-generate" onclick="generatePackingList()">
+        Get Weather & Build Packing List →
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── SCREEN 3: PACKING LIST ─── -->
+  <div class="screen" id="screen-3">
+    <h2 class="section-title">Your Packing List</h2>
+    <p class="section-sub">AI-generated based on your destinations, activities, and weather forecast.</p>
+
+    <div id="weather-status"></div>
+    <div class="weather-summary-bar" id="weather-pills"></div>
+
+    <div class="pack-controls">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Edit Activities</button>
+      <button class="btn btn-secondary" onclick="checkAll()">✓ Check All</button>
+      <button class="btn btn-secondary" onclick="uncheckAll()">↺ Reset</button>
+      <button class="btn btn-secondary" onclick="window.print()">🖨 Print</button>
+      <div class="progress-ring">
+        <div class="ring-bar"><div class="ring-fill" id="ring-fill" style="width:0%"></div></div>
+        <span id="ring-text">0 packed</span>
+      </div>
+    </div>
+
+    <div id="packing-list-container"></div>
+  </div>
+
+</main>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+const ACTIVITIES = [
+  { id: 'business',  label: 'Business / Work',  icon: '💼' },
+  { id: 'pool',      label: 'Pool / Beach',      icon: '🏖' },
+  { id: 'concert',   label: 'Concert / Show',    icon: '🎵' },
+  { id: 'museum',    label: 'Museums / Culture', icon: '🏛' },
+  { id: 'casual',    label: 'Casual Day',        icon: '☀️' },
+  { id: 'wine',      label: 'Wine Tasting',      icon: '🍷' },
+  { id: 'hiking',    label: 'Hiking / Outdoors', icon: '🥾' },
+  { id: 'dining',    label: 'Fine Dining',       icon: '🍽' },
+  { id: 'shopping',  label: 'Shopping',          icon: '🛍' },
+  { id: 'sports',    label: 'Sports / Gym',      icon: '🏋️' },
+  { id: 'nightlife', label: 'Nightlife / Bars',  icon: '🍸' },
+  { id: 'family',    label: 'Family / Kids',     icon: '👨‍👩‍👧' },
+];
+
+let cities = [];
+let cityIdCounter = 0;
+let dayActivities = {}; // { "cityId-dayIndex": Set of activity ids }
+let weatherData = {}; // { cityId: { avg_temp_f, condition, rain_chance } }
+
+// ─── CITY MANAGEMENT ──────────────────────────────────────────
+function addCity(name='', nights=3, startDate='') {
+  const id = ++cityIdCounter;
+  if (!startDate) {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    startDate = d.toISOString().split('T')[0];
+  }
+  cities.push({ id, name, nights, startDate });
+  renderCities();
+}
+
+function removeCity(id) {
+  cities = cities.filter(c => c.id !== id);
+  renderCities();
+}
+
+function renderCities() {
+  const list = document.getElementById('cities-list');
+  if (cities.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = cities.map(c => `
+    <div class="city-card" id="city-card-${c.id}">
+      <div class="field">
+        <label>City / Destination</label>
+        <input type="text" placeholder="e.g. Paris, France" value="${c.name}"
+          oninput="updateCity(${c.id},'name',this.value)">
+      </div>
+      <div class="field">
+        <label>Arrival Date</label>
+        <input type="date" value="${c.startDate}"
+          oninput="updateCity(${c.id},'startDate',this.value)">
+      </div>
+      <div class="field">
+        <label>Nights</label>
+        <input type="number" min="1" max="30" value="${c.nights}" style="width:80px"
+          oninput="updateCity(${c.id},'nights',+this.value)">
+      </div>
+      ${cities.length > 1 ? `<button class="btn-remove" onclick="removeCity(${c.id})" title="Remove">✕</button>` : '<div></div>'}
+    </div>
+  `).join('');
+}
+
+function updateCity(id, field, value) {
+  const c = cities.find(x => x.id === id);
+  if (c) c[field] = value;
+}
+
+// ─── SCREEN NAVIGATION ────────────────────────────────────────
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.step-tab').forEach((t, i) => {
+    t.classList.remove('active', 'done');
+    if (i + 1 < screen) t.classList.add('done');
+    if (i + 1 === screen) t.classList.add('active');
+  });
+  document.getElementById(`screen-${screen}`).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToActivities() {
+  // validate
+  const valid = cities.every(c => c.name.trim());
+  if (cities.length === 0 || !valid) {
+    alert('Please add at least one destination with a city name.');
+    return;
+  }
+  buildDayBlocks();
+  goTo(2);
+}
+
+// ─── DAY / ACTIVITY BUILDER ───────────────────────────────────
+function buildDayBlocks() {
+  const container = document.getElementById('days-container');
+  container.innerHTML = '';
+  cities.forEach(city => {
+    for (let d = 0; d < city.nights; d++) {
+      const key = `${city.id}-${d}`;
+      if (!dayActivities[key]) dayActivities[key] = new Set();
+
+      const date = new Date(city.startDate);
+      date.setDate(date.getDate() + d);
+      const dateStr = date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+      const block = document.createElement('div');
+      block.className = 'day-block';
+      block.innerHTML = `
+        <h3>${city.name} <span>Day ${d+1} · ${dateStr}</span></h3>
+        <div class="activities-grid" id="acts-${key}">
+          ${ACTIVITIES.map(a => `
+            <div class="activity-chip ${dayActivities[key].has(a.id) ? 'selected' : ''}"
+                 onclick="toggleActivity('${key}','${a.id}',this)">
+              <span class="icon">${a.icon}</span> ${a.label}
+            </div>
+          `).join('')}
+        </div>
+      `;
+      container.appendChild(block);
+    }
+  });
+}
+
+function toggleActivity(key, actId, el) {
+  if (!dayActivities[key]) dayActivities[key] = new Set();
+  if (dayActivities[key].has(actId)) {
+    dayActivities[key].delete(actId);
+    el.classList.remove('selected');
+  } else {
+    dayActivities[key].add(actId);
+    el.classList.add('selected');
+  }
+}
+
+// ─── WEATHER FETCH ────────────────────────────────────────────
+async function fetchWeather(city) {
+  try {
+    const geo = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.name)}&count=1&language=en&format=json`
+    );
+    const geoData = await geo.json();
+    if (!geoData.results?.length) return null;
+
+    const { latitude, longitude } = geoData.results[0];
+
+    const startDate = city.startDate;
+    const endD = new Date(city.startDate);
+    endD.setDate(endD.getDate() + city.nights - 1);
+    const endDate = endD.toISOString().split('T')[0];
+
+    const wx = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${startDate}&end_date=${endDate}`
+    );
+    const wxData = await wx.json();
+
+    const temps = wxData.daily.temperature_2m_max;
+    const mins = wxData.daily.temperature_2m_min;
+    const precip = wxData.daily.precipitation_probability_max || [];
+    const codes = wxData.daily.weathercode || [];
+
+    const avgHigh = temps.reduce((a,b)=>a+b,0)/temps.length;
+    const avgLow = mins.reduce((a,b)=>a+b,0)/mins.length;
+    const maxRain = Math.max(...precip, 0);
+    const maxCode = Math.max(...codes, 0);
+
+    return {
+      avgHigh: Math.round(avgHigh),
+      avgLow: Math.round(avgLow),
+      maxRain,
+      maxCode,
+      dailyHigh: temps,
+      dailyLow: mins,
+      dailyRain: precip,
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
+function weatherConditionLabel(code, rain) {
+  if (rain > 60) return { label:'Rainy', badge:'badge-rain', icon:'🌧' };
+  if (code >= 71) return { label:'Snow', badge:'badge-cold', icon:'❄️' };
+  if (code >= 61) return { label:'Rainy', badge:'badge-rain', icon:'🌧' };
+  if (code >= 51) return { label:'Drizzle', badge:'badge-rain', icon:'🌦' };
+  if (code >= 2) return { label:'Cloudy', badge:'badge-mild', icon:'☁️' };
+  return { label:'Clear', badge:'badge-warm', icon:'☀️' };
+}
+
+function tempBadge(temp) {
+  if (temp >= 85) return 'badge-hot';
+  if (temp >= 68) return 'badge-warm';
+  if (temp >= 50) return 'badge-mild';
+  return 'badge-cold';
+}
+
+// ─── PACKING LIST LOGIC ───────────────────────────────────────
+function buildPackingList(weatherMap) {
+  // Collect all activities across all days
+  const allActs = new Set();
+  const actsByCity = {};
+  cities.forEach(city => {
+    actsByCity[city.id] = new Set();
+    for (let d = 0; d < city.nights; d++) {
+      const key = `${city.id}-${d}`;
+      (dayActivities[key] || new Set()).forEach(a => {
+        allActs.add(a);
+        actsByCity[city.id].add(a);
+      });
+    }
+  });
+
+  // Weather summary across all cities
+  const wxList = Object.values(weatherMap).filter(Boolean);
+  const globalMaxHigh = wxList.length ? Math.max(...wxList.map(w=>w.avgHigh)) : 72;
+  const globalMinLow = wxList.length ? Math.min(...wxList.map(w=>w.avgLow)) : 55;
+  const globalMaxRain = wxList.length ? Math.max(...wxList.map(w=>w.maxRain)) : 0;
+  const isHot = globalMaxHigh >= 82;
+  const isCold = globalMinLow <= 45;
+  const isMild = !isHot && !isCold;
+  const isRainy = globalMaxRain > 40;
+  const totalNights = cities.reduce((a,c)=>a+c.nights,0);
+
+  // Build categories
+  const sections = [];
+
+  // ── DOCUMENTS & ESSENTIALS ──
+  sections.push({
+    title: 'Documents & Essentials',
+    icon: '📄',
+    items: [
+      'Passport / ID',
+      'Travel insurance documents',
+      'Boarding passes / tickets',
+      'Hotel confirmations',
+      'Emergency contact list',
+      'Credit cards & cash',
+      'Copies of important docs (digital)',
+      ...(allActs.has('business') ? ['Business cards', 'Work laptop', 'Laptop charger & adapter'] : []),
+    ]
+  });
+
+  // ── CLOTHING ──
+  const clothes = [];
+  // Base layers
+  const shirts = Math.min(totalNights + 1, 8);
+  clothes.push(`T-shirts / casual tops (×${shirts})`);
+  if (isCold) {
+    clothes.push('Thermal base layers (top & bottom)');
+    clothes.push(`Warm sweaters or fleece (×${Math.min(3, Math.ceil(totalNights/2))})`);
+  }
+  if (!isHot) clothes.push(`Long-sleeve shirts (×${Math.ceil(totalNights/2)})`);
+  clothes.push(`Underwear (×${Math.min(totalNights + 2, 10)})`);
+  clothes.push(`Socks (×${Math.min(totalNights + 2, 10)})`);
+
+  // Pants / bottoms
+  const pants = Math.ceil(totalNights / 3);
+  if (isHot) {
+    clothes.push(`Shorts (×${Math.min(pants + 1, 4)})`);
+  }
+  clothes.push(`Pants / jeans (×${Math.min(pants, 3)})`);
+  if (isCold) clothes.push('Thermal / lined pants');
+
+  // Outerwear
+  if (isCold) clothes.push('Heavy winter coat');
+  else if (isMild) clothes.push('Light jacket or blazer');
+  if (isRainy) clothes.push('Waterproof rain jacket');
+
+  // Activity-specific clothing
+  if (allActs.has('business')) {
+    clothes.push('Business attire (suit / dress)');
+    clothes.push('Dress shirts / blouses');
+    clothes.push('Tie / accessories');
+  }
+  if (allActs.has('pool')) {
+    clothes.push('Swimsuit / swim trunks');
+    clothes.push('Cover-up / sarong');
+    clothes.push('Flip flops / sandals');
+  }
+  if (allActs.has('concert') || allActs.has('nightlife')) {
+    clothes.push('Going-out outfit / evening wear');
+  }
+  if (allActs.has('wine') || allActs.has('dining')) {
+    clothes.push('Smart casual / dressy outfit');
+  }
+  if (allActs.has('hiking')) {
+    clothes.push('Moisture-wicking hiking shirt');
+    clothes.push('Hiking pants or convertible pants');
+    clothes.push('Wool or synthetic hiking socks');
+  }
+  if (allActs.has('sports')) {
+    clothes.push('Athletic wear / workout clothes');
+    clothes.push('Sports socks');
+  }
+  if (isHot) clothes.push('Sun hat / baseball cap');
+  if (isCold) clothes.push('Winter hat & gloves');
+  if (isRainy) clothes.push('Compact travel umbrella');
+
+  sections.push({ title: 'Clothing', icon: '👕', items: [...new Set(clothes)] });
+
+  // ── FOOTWEAR ──
+  const shoes = ['Comfortable walking shoes'];
+  if (allActs.has('business')) shoes.push('Dress shoes');
+  if (allActs.has('hiking')) shoes.push('Hiking boots / trail shoes');
+  if (allActs.has('sports')) shoes.push('Athletic / gym shoes');
+  if (allActs.has('pool') || isHot) shoes.push('Sandals / flip flops');
+  if (allActs.has('concert') || allActs.has('dining') || allActs.has('wine')) shoes.push('Dressy shoes / heels');
+  if (isCold) shoes.push('Warm boots / waterproof boots');
+  sections.push({ title: 'Footwear', icon: '👟', items: [...new Set(shoes)] });
+
+  // ── TOILETRIES ──
+  const toiletries = [
+    'Toothbrush & toothpaste',
+    'Deodorant',
+    'Shampoo & conditioner',
+    'Body wash / soap',
+    'Razor & shaving cream',
+    'Moisturizer / skincare',
+    'Lip balm',
+    'Nail clippers',
+    'Hair brush / comb',
+    'Feminine hygiene products (if needed)',
+  ];
+  if (isHot || allActs.has('pool')) {
+    toiletries.push('Sunscreen (SPF 30+)');
+    toiletries.push('After-sun lotion / aloe');
+  }
+  if (allActs.has('pool')) {
+    toiletries.push('Waterproof sunscreen');
+  }
+  sections.push({ title: 'Toiletries & Personal Care', icon: '🧴', items: toiletries });
+
+  // ── MEDICATIONS & HEALTH ──
+  sections.push({
+    title: 'Medications & Health',
+    icon: '💊',
+    items: [
+      'Prescription medications (+ extra supply)',
+      'Pain reliever (ibuprofen / acetaminophen)',
+      'Antacids / stomach meds',
+      'Motion sickness medication',
+      'Allergy medication',
+      'Band-aids & small first aid kit',
+      'Hand sanitizer',
+      'Face masks',
+      ...(isRainy ? ['Cold / flu medication'] : []),
+    ]
+  });
+
+  // ── TECH & GADGETS ──
+  const tech = [
+    'Phone charger & cable',
+    'Power bank / portable charger',
+    'Universal power adapter',
+    'Earbuds / headphones',
+    'Camera (if not using phone)',
+  ];
+  if (allActs.has('business')) {
+    tech.push('Laptop & charger');
+    tech.push('Mouse & accessories');
+    tech.push('Work notebook & pens');
+  }
+  if (allActs.has('hiking')) {
+    tech.push('GPS device or downloaded offline maps');
+  }
+  sections.push({ title: 'Tech & Gadgets', icon: '📱', items: [...new Set(tech)] });
+
+  // ── ACTIVITY-SPECIFIC ──
+  const specific = [];
+  if (allActs.has('pool')) {
+    specific.push('Beach towel');
+    specific.push('Snorkel / goggles');
+    specific.push('Waterproof phone case / dry bag');
+    specific.push('Reusable water bottle');
+    specific.push('Cooler bag / snacks');
+  }
+  if (allActs.has('hiking')) {
+    specific.push('Daypack / hiking backpack');
+    specific.push('Trekking poles (if needed)');
+    specific.push('Trail snacks & energy bars');
+    specific.push('Reusable water bottle (large)');
+    specific.push('Bug spray / insect repellent');
+    specific.push('Blister prevention (BodyGlide / moleskin)');
+    specific.push('Headlamp + batteries');
+  }
+  if (allActs.has('museum')) {
+    specific.push('Comfortable day bag / tote');
+    specific.push('Museum membership cards (if applicable)');
+    specific.push('Guidebook or downloaded audio tour');
+  }
+  if (allActs.has('concert') || allActs.has('nightlife')) {
+    specific.push('Event tickets (printed or downloaded)');
+    specific.push('Earplugs (concerts)');
+  }
+  if (allActs.has('wine')) {
+    specific.push('Tasting notes notebook');
+    specific.push('Comfortable flats for vineyard walking');
+  }
+  if (allActs.has('sports')) {
+    specific.push('Gym bag');
+    specific.push('Water bottle');
+    specific.push('Resistance bands (travel workout)');
+  }
+  if (allActs.has('family')) {
+    specific.push('Snacks for kids');
+    specific.push('Entertainment (books, tablet, games)');
+    specific.push('Kid-friendly sunscreen');
+    specific.push('First aid extras (children's meds)');
+  }
+  if (specific.length) {
+    sections.push({ title: 'Activity Gear', icon: '🎒', items: [...new Set(specific)] });
+  }
+
+  // ── BAG & TRAVEL ──
+  sections.push({
+    title: 'Bag & Travel',
+    icon: '🧳',
+    items: [
+      'Suitcase / main luggage',
+      'Carry-on bag (if flying)',
+      'Day bag / backpack',
+      'Luggage tags',
+      'Travel locks',
+      'Packing cubes',
+      'Reusable shopping bag',
+      'Snacks for travel day',
+      'Neck pillow & eye mask (long flights)',
+      'Ziplock bags (for liquids)',
+    ]
+  });
+
+  return sections;
+}
+
+// ─── GENERATE PACKING LIST ────────────────────────────────────
+async function generatePackingList() {
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Fetching weather…';
+
+  goTo(3);
+
+  const statusEl = document.getElementById('weather-status');
+  statusEl.classList.add('show');
+  statusEl.innerHTML = '<div style="color:var(--gold);font-weight:600;margin-bottom:10px">🌤 Fetching weather forecasts…</div>';
+
+  // Fetch weather for each city
+  weatherData = {};
+  for (const city of cities) {
+    const wx = await fetchWeather(city);
+    weatherData[city.id] = wx;
+
+    const cond = wx ? weatherConditionLabel(wx.maxCode, wx.maxRain) : null;
+    statusEl.innerHTML += `
+      <div class="weather-city-row">
+        <span>${city.name}</span>
+        ${wx
+          ? `<span>
+              <span class="weather-badge ${tempBadge(wx.avgHigh)}">${wx.avgHigh}°F high / ${wx.avgLow}°F low</span>
+              &nbsp;
+              <span class="weather-badge ${cond.badge}">${cond.icon} ${cond.label}</span>
+            </span>`
+          : '<span style="color:#f0a060">⚠ Weather unavailable — using general recommendations</span>'
+        }
+      </div>
+    `;
+  }
+
+  // Weather summary pills
+  const pillsEl = document.getElementById('weather-pills');
+  pillsEl.innerHTML = cities.map(city => {
+    const wx = weatherData[city.id];
+    if (!wx) return `<div class="weather-pill"><small>${city.name}</small><strong>N/A</strong></div>`;
+    const cond = weatherConditionLabel(wx.maxCode, wx.maxRain);
+    return `
+      <div class="weather-pill">
+        <small>${city.name}</small>
+        <strong>${cond.icon} ${wx.avgHigh}° / ${wx.avgLow}°F</strong>
+        <small>${cond.label} · Rain ${wx.maxRain}%</small>
+      </div>
+    `;
+  }).join('');
+
+  // Build packing list
+  const sections = buildPackingList(weatherData);
+  renderPackingList(sections);
+
+  btn.disabled = false;
+  btn.innerHTML = 'Get Weather & Build Packing List →';
+}
+
+// ─── RENDER PACKING LIST ──────────────────────────────────────
+let allPackItems = [];
+
+function renderPackingList(sections) {
+  allPackItems = [];
+  const container = document.getElementById('packing-list-container');
+  container.innerHTML = '';
+
+  sections.forEach((sec, si) => {
+    const div = document.createElement('div');
+    div.className = 'packing-section';
+
+    const dedupedItems = [...new Set(sec.items)];
+
+    div.innerHTML = `
+      <div class="packing-section-title">
+        <span class="cat-icon">${sec.icon}</span>
+        ${sec.title}
+        <span class="count">${dedupedItems.length} items</span>
+      </div>
+      <div class="pack-grid">
+        ${dedupedItems.map((item, ii) => {
+          const id = `pack-${si}-${ii}`;
+          allPackItems.push(id);
+          return `
+            <div class="pack-item" id="wrap-${id}">
+              <input type="checkbox" id="${id}" onchange="onCheck('${id}')">
+              <label for="${id}">${item}</label>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function onCheck(id) {
+  const cb = document.getElementById(id);
+  const wrap = document.getElementById(`wrap-${id}`);
+  wrap.classList.toggle('packed', cb.checked);
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = allPackItems.length;
+  const checked = allPackItems.filter(id => document.getElementById(id)?.checked).length;
+  const pct = total ? Math.round(checked / total * 100) : 0;
+  document.getElementById('ring-fill').style.width = pct + '%';
+  document.getElementById('ring-text').textContent = `${checked} / ${total} packed`;
+}
+
+function checkAll() {
+  allPackItems.forEach(id => {
+    const cb = document.getElementById(id);
+    if (cb) { cb.checked = true; document.getElementById(`wrap-${id}`)?.classList.add('packed'); }
+  });
+  updateProgress();
+}
+
+function uncheckAll() {
+  allPackItems.forEach(id => {
+    const cb = document.getElementById(id);
+    if (cb) { cb.checked = false; document.getElementById(`wrap-${id}`)?.classList.remove('packed'); }
+  });
+  updateProgress();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+addCity('', 4, '');
+</script>
+</body>
+</html>
