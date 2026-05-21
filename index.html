@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PackRight — What to Wear</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#2c5f8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Packing">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -371,7 +376,21 @@ input.ambiguous { border-color: var(--gold); }
 
   /* ── CITY MANAGEMENT ─────────────────────────────────────────── */
   function addCity() {
-    var city = { id: uid(), name: '', nights: 4, startDate: todayPlus(14), geo: null, geoLabel: '' };
+    var nextStartDate;
+    if (cities.length > 0) {
+      var last = cities[cities.length - 1];
+      var lastNights = parseInt(last.nights, 10);
+      if (last.startDate && lastNights > 0) {
+        var d = new Date(last.startDate + 'T00:00:00');
+        d.setDate(d.getDate() + lastNights);
+        nextStartDate = d.toISOString().slice(0, 10);
+      } else {
+        nextStartDate = todayPlus(14);
+      }
+    } else {
+      nextStartDate = todayPlus(14);
+    }
+    var city = { id: uid(), name: '', nights: '', startDate: nextStartDate, geo: null, geoLabel: '' };
     cities.push(city);
     renderCities();
   }
@@ -455,6 +474,7 @@ input.ambiguous { border-color: var(--gold); }
 
       iName.addEventListener('input', triggerGeocode);
       iName.addEventListener('blur', function () {
+        if (pickerEl.children.length > 0) return;
         clearTimeout(geoTimers[city.id]);
         city.name = iName.value;
         if (city.name.trim() && !city.geo) {
@@ -476,6 +496,10 @@ input.ambiguous { border-color: var(--gold); }
     }
     if (cities.some(function (c) { return !c.geo; })) {
       errEl.textContent = 'Please wait for city lookup to complete, or pick from the options shown.';
+      errEl.classList.add('show'); return;
+    }
+    if (cities.some(function (c) { return !c.nights || parseInt(c.nights, 10) < 1; })) {
+      errEl.textContent = 'Please enter the number of nights for every destination.';
       errEl.classList.add('show'); return;
     }
 
