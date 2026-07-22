@@ -157,6 +157,56 @@ input.ambiguous { border-color: var(--gold); }
 .global-error.show { display: block; }
 #loading-msg { text-align: center; padding: 40px 0; color: var(--soft); display: none; }
 #loading-msg.show { display: block; }
+
+/* HEADER NAV */
+#app-header .spacer { flex: 1; }
+#header-trips-btn { background: #ffffff18; color: var(--paper); border: 1.5px solid #ffffff33; border-radius: 7px; padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all .15s; align-self: center; }
+#header-trips-btn:hover { background: #ffffff30; }
+
+/* PERSON TOGGLE */
+.person-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.person-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border: 1.5px solid var(--cream); border-radius: 30px; cursor: pointer; font-size: 0.92rem; font-weight: 600; background: white; color: var(--ink); user-select: none; transition: all .15s; }
+.person-btn .p-emoji { font-size: 1.1rem; }
+.person-btn.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* TRIP NAME */
+.trip-name-wrap { margin-bottom: 22px; }
+
+/* MY TRIPS */
+.trips-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.trip-card { background: white; border: 1.5px solid var(--cream); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px #0001; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.trip-card-main { flex: 1; min-width: 200px; cursor: pointer; }
+.trip-card-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 3px; }
+.trip-card-meta { font-size: 0.8rem; color: var(--soft); }
+.person-badge { display: inline-block; font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; padding: 3px 9px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+.person-badge.erik  { background: #dbeafe; color: #2c5f8a; }
+.person-badge.megan { background: #fbe2d3; color: #a84e24; }
+.trip-progress { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--soft); min-width: 120px; }
+.trip-progress .tp-track { flex: 1; height: 5px; background: var(--cream); border-radius: 3px; overflow: hidden; }
+.trip-progress .tp-fill { height: 100%; background: var(--green); border-radius: 3px; }
+.trips-empty { text-align: center; padding: 40px 18px; color: var(--soft); }
+#trips-loading { text-align: center; padding: 40px 0; color: var(--soft); display: none; }
+#trips-loading.show { display: block; }
+
+/* EDITABLE PACK ITEMS */
+.pack-item .item-label { flex: 1; }
+.item-tools { display: flex; gap: 4px; opacity: 0; transition: opacity .12s; flex-shrink: 0; }
+.pack-item:hover .item-tools { opacity: 1; }
+.item-tool { background: none; border: none; cursor: pointer; color: var(--soft); font-size: 0.85rem; padding: 2px 5px; border-radius: 4px; line-height: 1; }
+.item-tool:hover { color: var(--accent); background: var(--cream); }
+.item-tool.del:hover { color: var(--red); }
+.item-edit-input { flex: 1; padding: 4px 8px; border: 1.5px solid var(--blue); border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 0.87rem; background: white; }
+.add-item-row { display: flex; gap: 6px; margin-top: 8px; padding: 0 10px; }
+.add-item-row input { flex: 1; padding: 6px 10px; font-size: 0.85rem; }
+.add-item-btn { background: transparent; color: var(--blue); border: 1.5px dashed var(--blue); border-radius: 6px; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.add-item-btn:hover { background: #e8f0f7; }
+
+/* SAVE INDICATOR */
+#save-status { font-size: 0.78rem; color: var(--soft); display: flex; align-items: center; gap: 5px; }
+#save-status.saving { color: var(--blue); }
+#save-status.saved  { color: var(--green); }
+#storage-note { font-size: 0.72rem; color: var(--gold); background: #fdf6e3; border: 1px solid #eadfae; border-radius: 6px; padding: 6px 10px; margin-bottom: 14px; display: none; }
+#storage-note.show { display: block; }
 </style>
 </head>
 <body>
@@ -164,6 +214,8 @@ input.ambiguous { border-color: var(--gold); }
 <div id="app-header">
   <h1>✈ PackRight</h1>
   <span class="tagline">What to Wear</span>
+  <span class="spacer"></span>
+  <button id="header-trips-btn">☰ My Trips</button>
 </div>
 
 <div id="tabs">
@@ -174,9 +226,31 @@ input.ambiguous { border-color: var(--gold); }
 
 <div id="main">
 
+  <!-- SCREEN 0 · MY TRIPS -->
+  <div class="screen" id="screen-0">
+    <div class="page-title">My Trips</div>
+    <div class="page-sub">Saved packing lists — open one to keep packing, or start a new trip.</div>
+    <div class="trips-toolbar">
+      <button class="btn btn-primary" id="new-trip-btn">+ New Trip</button>
+    </div>
+    <div id="trips-loading">⏳ Loading your trips…</div>
+    <div id="trips-list"></div>
+  </div>
+
   <!-- SCREEN 1 -->
   <div class="screen active" id="screen-1">
-    <div class="page-title">Where are you headed?</div>
+    <div class="page-title">Who's packing?</div>
+    <div class="page-sub">Pick a person and name this trip so you can find it later.</div>
+    <div id="storage-note"></div>
+    <div class="person-row" id="person-row">
+      <div class="person-btn on" data-person="erik"><span class="p-emoji">🧔</span> Erik</div>
+      <div class="person-btn" data-person="megan"><span class="p-emoji">👩</span> Megan</div>
+    </div>
+    <div class="trip-name-wrap">
+      <label class="field-label" for="trip-name-input">Trip name</label>
+      <input type="text" id="trip-name-input" placeholder="e.g. Paris — July">
+    </div>
+    <div class="page-title" style="font-size:1.25rem;margin-top:6px;">Where are you headed?</div>
     <div class="page-sub">Enter each destination — we'll look it up so you get the right weather.</div>
     <div class="global-error" id="err-1"></div>
     <div id="city-list"></div>
@@ -209,6 +283,7 @@ input.ambiguous { border-color: var(--gold); }
       <button class="btn btn-secondary" id="back-to-2-btn">← Edit Activities</button>
       <button class="btn btn-secondary" id="check-all-btn">✓ Check All</button>
       <button class="btn btn-secondary" id="reset-btn">↺ Reset</button>
+      <span id="save-status"></span>
       <div id="progress-wrap">
         <div id="progress-track"><div id="progress-fill"></div></div>
         <span id="progress-text">0 / 0 packed</span>
@@ -219,6 +294,165 @@ input.ambiguous { border-color: var(--gold); }
   </div>
 
 </div>
+
+<!-- ═══ STORAGE LAYER (Firebase Firestore, with local fallback) ═══ -->
+<script>
+  // The IIFE below awaits this promise before touching storage.
+  window.PackStoreReady = new Promise(function (res) { window.__resolvePackStore = res; });
+</script>
+<script type="module">
+/* ──────────────────────────────────────────────────────────────────
+   FIREBASE SETUP  (one-time, free — see README / plan for steps)
+   1. console.firebase.google.com → create a project
+   2. Build → Firestore Database → create (production mode)
+   3. Build → Authentication → Sign-in method → enable "Anonymous"
+   4. Project settings → Your apps → Web → copy the config below
+   5. Firestore Rules:
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{db}/documents {
+            match /trips/{tripId} {
+              allow read, write: if request.auth != null;
+            }
+          }
+        }
+   Until you paste a real config, the app automatically falls back to
+   on-device storage (localStorage) so it still works for local testing.
+   ────────────────────────────────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey:            "PASTE_API_KEY",
+  authDomain:        "PASTE_PROJECT.firebaseapp.com",
+  projectId:         "PASTE_PROJECT_ID",
+  storageBucket:     "PASTE_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_SENDER_ID",
+  appId:             "PASTE_APP_ID"
+};
+
+const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PASTE") === -1;
+
+/* Small helper to build a normalized store API shared by both backends. */
+function makeLocalStore() {
+  const KEY = 'packright_trips';
+  const listeners = new Set();
+  function readAll() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function writeAll(obj) { localStorage.setItem(KEY, JSON.stringify(obj)); }
+  function toList(obj) {
+    return Object.keys(obj).map(function (id) {
+      return Object.assign({ id: id }, obj[id]);
+    }).sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+  }
+  function notify() { const list = toList(readAll()); listeners.forEach(function (cb) { cb(list); }); }
+  function newId() {
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  }
+  window.addEventListener('storage', function (e) { if (e.key === KEY) notify(); });
+
+  return {
+    mode: 'local',
+    saveTrip: function (trip) {
+      const all = readAll(); const id = newId();
+      all[id] = Object.assign({}, trip, { createdAt: Date.now(), updatedAt: Date.now() });
+      writeAll(all); notify();
+      return Promise.resolve(id);
+    },
+    updateTrip: function (id, partial) {
+      const all = readAll(); if (!all[id]) return Promise.resolve();
+      all[id] = Object.assign({}, all[id], partial, { updatedAt: Date.now() });
+      writeAll(all); notify();
+      return Promise.resolve();
+    },
+    deleteTrip: function (id) {
+      const all = readAll(); delete all[id]; writeAll(all); notify();
+      return Promise.resolve();
+    },
+    getTrip: function (id) {
+      const all = readAll();
+      return Promise.resolve(all[id] ? Object.assign({ id: id }, all[id]) : null);
+    },
+    onTripsChanged: function (cb) {
+      listeners.add(cb); cb(toList(readAll()));
+      return function () { listeners.delete(cb); };
+    }
+  };
+}
+
+async function makeFirebaseStore() {
+  const V = 'https://www.gstatic.com/firebasejs/10.12.2';
+  const { initializeApp } = await import(V + '/firebase-app.js');
+  const { getAuth, signInAnonymously, onAuthStateChanged } = await import(V + '/firebase-auth.js');
+  const {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+    getDoc, onSnapshot, serverTimestamp, query, orderBy
+  } = await import(V + '/firebase-firestore.js');
+
+  const app  = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+  const col  = collection(db, 'trips');
+
+  // Ensure we're signed in before any read/write (rules require request.auth).
+  await new Promise(function (resolve, reject) {
+    onAuthStateChanged(auth, function (user) { if (user) resolve(); });
+    signInAnonymously(auth).catch(reject);
+  });
+
+  function stamp(v) {
+    // Firestore serverTimestamp() -> ms for sorting/UI once resolved; guard nulls.
+    return v && v.toMillis ? v.toMillis() : (v || 0);
+  }
+
+  return {
+    mode: 'firebase',
+    saveTrip: async function (trip) {
+      const ref = await addDoc(col, Object.assign({}, trip, {
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      }));
+      return ref.id;
+    },
+    updateTrip: function (id, partial) {
+      return updateDoc(doc(db, 'trips', id),
+        Object.assign({}, partial, { updatedAt: serverTimestamp() }));
+    },
+    deleteTrip: function (id) { return deleteDoc(doc(db, 'trips', id)); },
+    getTrip: async function (id) {
+      const snap = await getDoc(doc(db, 'trips', id));
+      return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+    },
+    onTripsChanged: function (cb) {
+      const q = query(col, orderBy('updatedAt', 'desc'));
+      return onSnapshot(q, function (snap) {
+        const list = [];
+        snap.forEach(function (d) {
+          const data = d.data();
+          list.push(Object.assign({ id: d.id }, data, {
+            updatedAt: stamp(data.updatedAt), createdAt: stamp(data.createdAt)
+          }));
+        });
+        cb(list);
+      }, function (err) {
+        console.error('[PackStore] snapshot error', err);
+        cb([]);
+      });
+    }
+  };
+}
+
+(async function initStore() {
+  let store;
+  try {
+    store = CONFIGURED ? await makeFirebaseStore() : makeLocalStore();
+  } catch (err) {
+    console.error('[PackStore] Firebase init failed — falling back to local storage.', err);
+    store = makeLocalStore();
+  }
+  window.PackStore = store;
+  window.__resolvePackStore(store);
+}());
+</script>
 
 <script>
 (function () {
@@ -240,11 +474,53 @@ input.ambiguous { border-color: var(--gold); }
     { id: 'family',    label: 'Family / Kids',      icon: '👨‍👩‍👧' },
   ];
 
+  /* ── PERSON DEFAULTS ────────────────────────────────────────── */
+  // "Normal packing list" seed per person. Merged into every trip for that
+  // person as an "Essentials" section. Megan's is a placeholder baseline —
+  // replace these strings with her actual normal list any time.
+  var PERSON_DEFAULTS = {
+    erik: [],
+    megan: [
+      'Makeup bag',
+      'Foundation / concealer',
+      'Mascara & eyeliner',
+      'Lipstick / lip balm',
+      'Makeup remover wipes',
+      'Skincare (cleanser, moisturizer, serum)',
+      'Sunscreen (face)',
+      'Hair brush / comb',
+      'Hair dryer',
+      'Hair straightener / curling iron',
+      'Hair ties & clips',
+      'Dry shampoo',
+      'Perfume',
+      'Jewelry (earrings, necklaces)',
+      'Nail file & clippers',
+      'Feminine hygiene products',
+      'Birth control / daily medications',
+      'Contact lenses & solution',
+      'Glasses',
+      'Deodorant',
+      'Toothbrush & toothpaste',
+      'Pajamas / sleepwear',
+      'Robe',
+      'Slippers',
+    ],
+  };
+
+  var PERSON_LABELS = { erik: 'Erik', megan: 'Megan' };
+
   /* ── STATE ──────────────────────────────────────────────────── */
   var _nextId   = 0;
   var cities    = [];   // [{ id, name, nights, startDate, geo: {lat,lon,label} | null }]
   var dayActs   = {};   // { "cityId-day": { actId: bool } }
-  var packItems = [];
+  var sections  = [];   // source of truth: [{ title, icon, items:[{label,checked,custom}] }]
+  var weatherSummary = []; // [{ label, avgHigh, avgLow, maxRain, maxCode }]
+
+  var person       = 'erik';
+  var tripTitle    = '';
+  var currentTripId = null;   // set once a trip is saved / opened
+  var Store        = null;    // set from window.PackStore when ready
 
   /* ── HELPERS ────────────────────────────────────────────────── */
   function uid()  { return ++_nextId; }
@@ -275,6 +551,8 @@ input.ambiguous { border-color: var(--gold); }
   function goTo(n) {
     document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
     document.getElementById('screen-' + n).classList.add('active');
+    // The numbered step tabs only apply to the New/Edit Trip flow (screens 1–3).
+    document.getElementById('tabs').style.display = (n === 0) ? 'none' : 'flex';
     document.querySelectorAll('#tabs .tab').forEach(function (t, i) {
       t.classList.remove('active', 'done');
       if (i + 1 === n) t.classList.add('active');
@@ -665,53 +943,222 @@ input.ambiguous { border-color: var(--gold); }
     return sections;
   }
 
-  /* ── RENDER PACKING LIST ─────────────────────────────────────── */
-  function renderPackingList(sections) {
-    packItems = [];
+  /* ── SECTION MODEL ───────────────────────────────────────────── */
+  // Convert raw {title, icon, items:[string]} sections into the editable/
+  // savable model {title, icon, items:[{label,checked,custom}]}, merge the
+  // selected person's default "Essentials", and preserve prior check state
+  // and any custom items (matched by label) so regenerating never wipes work.
+  function materializeSections(raw, prevSections) {
+    var prevChecked = {};                 // label -> checked
+    var prevCustomBySection = {};         // sectionTitle -> [customItem]
+    (prevSections || []).forEach(function (s) {
+      s.items.forEach(function (it) {
+        prevChecked[it.label] = it.checked;
+        if (it.custom) {
+          (prevCustomBySection[s.title] = prevCustomBySection[s.title] || []).push(it);
+        }
+      });
+    });
+
+    var out = raw.map(function (sec) {
+      return {
+        title: sec.title, icon: sec.icon,
+        items: sec.items.map(function (lbl) {
+          return { label: lbl, checked: !!prevChecked[lbl], custom: false };
+        })
+      };
+    });
+
+    // Person's normal/baseline list → an "Essentials" section.
+    var defs = PERSON_DEFAULTS[person] || [];
+    var have = {};
+    out.forEach(function (s) { s.items.forEach(function (it) { have[it.label.toLowerCase()] = true; }); });
+    var essentials = [];
+    defs.forEach(function (lbl) {
+      if (!have[lbl.toLowerCase()]) {
+        essentials.push({ label: lbl, checked: !!prevChecked[lbl], custom: false });
+        have[lbl.toLowerCase()] = true;
+      }
+    });
+    if (essentials.length) {
+      out.push({ title: PERSON_LABELS[person] + "'s Essentials", icon: '💼', items: essentials });
+    }
+
+    // Re-attach any custom items the user added previously.
+    Object.keys(prevCustomBySection).forEach(function (title) {
+      var target = out.filter(function (s) { return s.title === title; })[0];
+      if (!target) { target = { title: title, icon: '✚', items: [] }; out.push(target); }
+      prevCustomBySection[title].forEach(function (it) {
+        var exists = target.items.some(function (x) { return x.label.toLowerCase() === it.label.toLowerCase(); });
+        if (!exists) target.items.push({ label: it.label, checked: it.checked, custom: true });
+      });
+    });
+
+    return out;
+  }
+
+  /* ── RENDER PACKING LIST (editable, from `sections` model) ────── */
+  function renderPackingList() {
     var container = document.getElementById('pack-list');
     container.innerHTML = '';
 
-    sections.forEach(function (sec, si) {
+    sections.forEach(function (sec) {
       var div = mk('div', 'pack-section');
 
       var titleRow = mk('div', 'pack-section-title');
       var icon = mk('span'); icon.textContent = sec.icon;
       titleRow.appendChild(icon);
       titleRow.appendChild(document.createTextNode(' ' + sec.title));
-      var cnt = mk('span', 'pack-count'); cnt.textContent = sec.items.length + ' items';
+      var cnt = mk('span', 'pack-count');
+      cnt.textContent = sec.items.length + ' items';
       titleRow.appendChild(cnt);
       div.appendChild(titleRow);
 
       var grid = mk('div', 'pack-grid');
       sec.items.forEach(function (item) {
-        var row = mk('div', 'pack-item');
-        var cb  = mk('input'); cb.type = 'checkbox';
-        var lbl = mk('span', 'item-label'); lbl.textContent = item;
-        cb.addEventListener('change', function () {
-          row.classList.toggle('done', cb.checked);
-          updateProgress();
-        });
-        row.addEventListener('click', function (e) {
-          if (e.target !== cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
-        });
-        row.appendChild(cb); row.appendChild(lbl);
-        grid.appendChild(row);
-        packItems.push({ cb: cb, row: row });
+        grid.appendChild(renderItemRow(sec, item));
       });
-
       div.appendChild(grid);
+
+      // Add-item row
+      var addRow = mk('div', 'add-item-row');
+      var addInput = mk('input'); addInput.type = 'text'; addInput.placeholder = 'Add an item…';
+      var addBtn = mk('button', 'add-item-btn'); addBtn.textContent = '+ Add';
+      function commitAdd() {
+        var val = addInput.value.trim();
+        if (!val) return;
+        sec.items.push({ label: val, checked: false, custom: true });
+        addInput.value = '';
+        renderPackingList();
+        updateProgress();
+        scheduleSave();
+      }
+      addBtn.addEventListener('click', commitAdd);
+      addInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') commitAdd(); });
+      addRow.appendChild(addInput); addRow.appendChild(addBtn);
+      div.appendChild(addRow);
+
       container.appendChild(div);
     });
 
     updateProgress();
   }
 
+  function renderItemRow(sec, item) {
+    var row = mk('div', 'pack-item' + (item.checked ? ' done' : ''));
+    var cb  = mk('input'); cb.type = 'checkbox'; cb.checked = !!item.checked;
+    var lbl = mk('span', 'item-label'); lbl.textContent = item.label;
+
+    cb.addEventListener('change', function () {
+      item.checked = cb.checked;
+      row.classList.toggle('done', cb.checked);
+      updateProgress();
+      scheduleSave();
+    });
+    row.addEventListener('click', function (e) {
+      if (e.target === cb || e.target.closest('.item-tools')) return;
+      if (row.querySelector('.item-edit-input')) return; // don't toggle while editing
+      cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));
+    });
+
+    // Tools: rename + delete
+    var tools = mk('div', 'item-tools');
+    var editBtn = mk('button', 'item-tool'); editBtn.textContent = '✎'; editBtn.title = 'Rename';
+    var delBtn  = mk('button', 'item-tool del'); delBtn.textContent = '✕'; delBtn.title = 'Remove';
+
+    editBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      startRename(row, sec, item, lbl);
+    });
+    delBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var i = sec.items.indexOf(item);
+      if (i > -1) sec.items.splice(i, 1);
+      renderPackingList();
+      updateProgress();
+      scheduleSave();
+    });
+
+    tools.appendChild(editBtn); tools.appendChild(delBtn);
+    row.appendChild(cb); row.appendChild(lbl); row.appendChild(tools);
+    return row;
+  }
+
+  function startRename(row, sec, item, lbl) {
+    var input = mk('input', 'item-edit-input');
+    input.type = 'text'; input.value = item.label;
+    row.replaceChild(input, lbl);
+    input.focus(); input.select();
+    var done = false;
+    function commit() {
+      if (done) return; done = true;
+      var val = input.value.trim();
+      if (val) item.label = val;
+      renderPackingList();
+      updateProgress();
+      scheduleSave();
+    }
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { done = true; renderPackingList(); }
+    });
+  }
+
+  function sectionsProgress(secs) {
+    var total = 0, checked = 0;
+    (secs || []).forEach(function (s) {
+      s.items.forEach(function (it) { total++; if (it.checked) checked++; });
+    });
+    return { total: total, checked: checked };
+  }
+
   function updateProgress() {
-    var total   = packItems.length;
-    var checked = packItems.filter(function (p) { return p.cb.checked; }).length;
-    var pct     = total ? Math.round(checked / total * 100) : 0;
+    var p = sectionsProgress(sections);
+    var pct = p.total ? Math.round(p.checked / p.total * 100) : 0;
     document.getElementById('progress-fill').style.width = pct + '%';
-    document.getElementById('progress-text').textContent = checked + ' / ' + total + ' packed';
+    document.getElementById('progress-text').textContent = p.checked + ' / ' + p.total + ' packed';
+  }
+
+  /* ── AUTO-SAVE ───────────────────────────────────────────────── */
+  var saveTimer = null;
+  function setSaveStatus(kind, text) {
+    var el = document.getElementById('save-status');
+    el.className = kind || '';
+    el.textContent = text || '';
+  }
+  function tripPayload() {
+    return {
+      person: person,
+      title: tripTitle || (cities[0] && cities[0].name) || 'Untitled trip',
+      cities: cities.map(function (c) {
+        return { name: c.name, geoLabel: c.geoLabel || '', geo: c.geo || null,
+                 startDate: c.startDate, nights: c.nights };
+      }),
+      dayActs: dayActs,
+      weatherSummary: weatherSummary,
+      sections: sections,
+    };
+  }
+  function scheduleSave() {
+    if (!Store) return;
+    setSaveStatus('saving', '⏳ Saving…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 700);
+  }
+  function saveNow() {
+    if (!Store) return Promise.resolve();
+    clearTimeout(saveTimer);
+    var payload = tripPayload();
+    var op = currentTripId
+      ? Store.updateTrip(currentTripId, payload)
+      : Store.saveTrip(payload).then(function (id) { currentTripId = id; });
+    return op.then(function () {
+      setSaveStatus('saved', '✓ Saved');
+    }).catch(function (err) {
+      console.error('[save] failed', err);
+      setSaveStatus('', '⚠ Save failed');
+    });
   }
 
   /* ── GENERATE ────────────────────────────────────────────────── */
@@ -733,60 +1180,223 @@ input.ambiguous { border-color: var(--gold); }
     document.getElementById('pack-list').innerHTML = '';
 
     var wxMap = {};
+    weatherSummary = [];
     var chain = Promise.resolve();
 
     cities.forEach(function (city) {
       chain = chain.then(function () {
         return fetchWeather(city).then(function (wx) {
           wxMap[city.id] = wx;
-
-          var row = mk('div', 'wx-row');
-          var nameSpan = mk('span');
-          nameSpan.textContent = city.geoLabel || city.name;
-          row.appendChild(nameSpan);
-
-          var badges = mk('span', 'wx-badges');
-          if (wx) {
-            var cond = wxLabel(wx.maxCode, wx.maxRain);
-            var b1 = mk('span', 'wx-badge'); b1.textContent = wx.avgHigh + '°F high / ' + wx.avgLow + '°F low';
-            var b2 = mk('span', 'wx-badge'); b2.textContent = cond.icon + ' ' + cond.text + ' · Rain ' + wx.maxRain + '%';
-            badges.appendChild(b1); badges.appendChild(b2);
-          } else {
-            badges.style.color = '#f0a060'; badges.style.fontSize = '0.78rem';
-            badges.textContent = 'Weather unavailable — using general recommendations';
-          }
-          row.appendChild(badges);
-          wxRowsEl.appendChild(row);
+          weatherSummary.push({
+            label:   city.geoLabel || city.name,
+            avgHigh: wx ? wx.avgHigh : null,
+            avgLow:  wx ? wx.avgLow  : null,
+            maxRain: wx ? wx.maxRain : null,
+            maxCode: wx ? wx.maxCode : null,
+          });
         });
       });
     });
 
     chain.then(function () {
-      var sections = buildPackingList(wxMap);
+      renderWeatherRows(weatherSummary);
+      var raw = buildPackingList(wxMap);
+      // Preserve prior check state / custom items when re-generating.
+      sections = materializeSections(raw, sections);
       loadMsg.classList.remove('show');
       ctrls.style.display = 'flex';
-      renderPackingList(sections);
+      renderPackingList();
       genBtn.disabled = false;
       genBtn.textContent = 'Get Weather & Build Packing List →';
+      saveNow();
     });
+  }
+
+  /* ── WEATHER ROWS (shared by generate + open) ────────────────── */
+  function renderWeatherRows(summary) {
+    var wxRowsEl = document.getElementById('wx-rows');
+    document.getElementById('wx-bar').classList.add('show');
+    wxRowsEl.innerHTML = '';
+    (summary || []).forEach(function (wx) {
+      var row = mk('div', 'wx-row');
+      var nameSpan = mk('span'); nameSpan.textContent = wx.label;
+      row.appendChild(nameSpan);
+
+      var badges = mk('span', 'wx-badges');
+      if (wx && wx.avgHigh != null) {
+        var cond = wxLabel(wx.maxCode, wx.maxRain);
+        var b1 = mk('span', 'wx-badge'); b1.textContent = wx.avgHigh + '°F high / ' + wx.avgLow + '°F low';
+        var b2 = mk('span', 'wx-badge'); b2.textContent = cond.icon + ' ' + cond.text + ' · Rain ' + wx.maxRain + '%';
+        badges.appendChild(b1); badges.appendChild(b2);
+      } else {
+        badges.style.color = '#f0a060'; badges.style.fontSize = '0.78rem';
+        badges.textContent = 'Weather unavailable — using general recommendations';
+      }
+      row.appendChild(badges);
+      wxRowsEl.appendChild(row);
+    });
+  }
+
+  /* ── PERSON SELECT ───────────────────────────────────────────── */
+  function setPerson(p) {
+    person = p;
+    document.querySelectorAll('#person-row .person-btn').forEach(function (btn) {
+      btn.classList.toggle('on', btn.getAttribute('data-person') === p);
+    });
+  }
+
+  /* ── TRIP LIFECYCLE ──────────────────────────────────────────── */
+  function startNewTrip() {
+    cities = []; dayActs = {}; sections = []; weatherSummary = [];
+    currentTripId = null; tripTitle = '';
+    setPerson('erik');
+    document.getElementById('trip-name-input').value = '';
+    document.getElementById('err-1').classList.remove('show');
+    setSaveStatus('', '');
+    addCity();
+    goTo(1);
+  }
+
+  function tripDatesLabel(trip) {
+    var cs = trip.cities || [];
+    if (!cs.length || !cs[0].startDate) return '';
+    var totalNights = cs.reduce(function (a, c) { return a + (parseInt(c.nights, 10) || 0); }, 0);
+    var start = new Date(cs[0].startDate + 'T12:00:00');
+    var end = new Date(cs[0].startDate + 'T12:00:00');
+    end.setDate(end.getDate() + Math.max(totalNights - 1, 0));
+    var fmt = function (d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+    return fmt(start) + (totalNights > 1 ? ' – ' + fmt(end) : '') + ' · ' + totalNights + ' night' + (totalNights === 1 ? '' : 's');
+  }
+
+  function renderTripsList(list) {
+    document.getElementById('trips-loading').classList.remove('show');
+    var container = document.getElementById('trips-list');
+    container.innerHTML = '';
+
+    if (!list.length) {
+      var empty = mk('div', 'trips-empty');
+      empty.textContent = 'No saved trips yet. Tap “+ New Trip” to build your first packing list.';
+      container.appendChild(empty);
+      return;
+    }
+
+    list.forEach(function (trip) {
+      var card = mk('div', 'trip-card');
+
+      var main = mk('div', 'trip-card-main');
+      var title = mk('div', 'trip-card-title');
+      var badge = mk('span', 'person-badge ' + (trip.person || 'erik'));
+      badge.textContent = PERSON_LABELS[trip.person] || 'Erik';
+      title.appendChild(badge);
+      title.appendChild(document.createTextNode(trip.title || 'Untitled trip'));
+      main.appendChild(title);
+
+      var meta = mk('div', 'trip-card-meta');
+      var cityNames = (trip.cities || []).map(function (c) { return c.name; }).filter(Boolean).join(' · ');
+      var dates = tripDatesLabel(trip);
+      meta.textContent = [cityNames, dates].filter(Boolean).join('  —  ');
+      main.appendChild(meta);
+
+      main.addEventListener('click', function () { openTrip(trip.id); });
+      card.appendChild(main);
+
+      // Progress
+      var prog = sectionsProgress(trip.sections);
+      var pw = mk('div', 'trip-progress');
+      var track = mk('div', 'tp-track'); var fill = mk('div', 'tp-fill');
+      fill.style.width = (prog.total ? Math.round(prog.checked / prog.total * 100) : 0) + '%';
+      track.appendChild(fill);
+      var pt = mk('span'); pt.textContent = prog.checked + '/' + prog.total;
+      pw.appendChild(track); pw.appendChild(pt);
+      card.appendChild(pw);
+
+      var del = mk('button', 'btn-remove'); del.textContent = '🗑'; del.title = 'Delete trip';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!window.confirm('Delete “' + (trip.title || 'this trip') + '”?')) return;
+        Store.deleteTrip(trip.id);
+        if (currentTripId === trip.id) currentTripId = null;
+      });
+      card.appendChild(del);
+
+      container.appendChild(card);
+    });
+  }
+
+  function openTrip(id) {
+    if (!Store) return;
+    Store.getTrip(id).then(function (trip) {
+      if (!trip) { window.alert('Trip not found.'); return; }
+      currentTripId = trip.id;
+      person    = trip.person || 'erik';
+      tripTitle = trip.title || '';
+      // Restore city ids so day-activity keys stay consistent for editing.
+      cities = (trip.cities || []).map(function (c) {
+        return { id: uid(), name: c.name, nights: c.nights, startDate: c.startDate,
+                 geo: c.geo || null, geoLabel: c.geoLabel || '' };
+      });
+      dayActs = trip.dayActs || {};
+      weatherSummary = trip.weatherSummary || [];
+      sections = trip.sections || [];
+
+      setPerson(person);
+      document.getElementById('trip-name-input').value = tripTitle;
+      renderCities();
+      buildDayBlocks();
+      renderWeatherRows(weatherSummary);
+      document.getElementById('loading-msg').classList.remove('show');
+      document.getElementById('pack-controls').style.display = 'flex';
+      renderPackingList();
+      setSaveStatus('saved', '✓ Saved');
+      goTo(3);
+    }).catch(function (err) {
+      console.error('[openTrip] failed', err);
+      window.alert('Could not open trip.');
+    });
+  }
+
+  function bulkSetChecked(val) {
+    sections.forEach(function (s) { s.items.forEach(function (it) { it.checked = val; }); });
+    renderPackingList();
+    updateProgress();
+    scheduleSave();
   }
 
   /* ── INIT ────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
-    addCity();
+    // Header nav
+    document.getElementById('header-trips-btn').addEventListener('click', function () { goTo(0); });
+    document.getElementById('new-trip-btn').addEventListener('click', startNewTrip);
 
+    // Person toggle
+    document.querySelectorAll('#person-row .person-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { setPerson(btn.getAttribute('data-person')); });
+    });
+    // Trip name
+    document.getElementById('trip-name-input').addEventListener('input', function (e) {
+      tripTitle = e.target.value;
+    });
+
+    // Flow buttons
     document.getElementById('add-city-btn').addEventListener('click', addCity);
     document.getElementById('go-activities-btn').addEventListener('click', goToActivities);
     document.getElementById('back-to-1-btn').addEventListener('click', function () { goTo(1); });
     document.getElementById('generate-btn').addEventListener('click', generate);
     document.getElementById('back-to-2-btn').addEventListener('click', function () { goTo(2); });
-    document.getElementById('check-all-btn').addEventListener('click', function () {
-      packItems.forEach(function (p) { p.cb.checked = true; p.row.classList.add('done'); });
-      updateProgress();
-    });
-    document.getElementById('reset-btn').addEventListener('click', function () {
-      packItems.forEach(function (p) { p.cb.checked = false; p.row.classList.remove('done'); });
-      updateProgress();
+    document.getElementById('check-all-btn').addEventListener('click', function () { bulkSetChecked(true); });
+    document.getElementById('reset-btn').addEventListener('click', function () { bulkSetChecked(false); });
+
+    // Wait for the storage layer, then show My Trips and subscribe live.
+    document.getElementById('trips-loading').classList.add('show');
+    goTo(0);
+    window.PackStoreReady.then(function (store) {
+      Store = store;
+      if (store.mode === 'local') {
+        var note = document.getElementById('storage-note');
+        note.textContent = '⚠ Firebase isn’t configured yet — trips are saved on this device only. Add your Firebase config to sync across devices.';
+        note.classList.add('show');
+      }
+      store.onTripsChanged(renderTripsList);
     });
   });
 
