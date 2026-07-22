@@ -302,17 +302,19 @@ input.ambiguous { border-color: var(--gold); }
 </script>
 <script type="module">
 /* ──────────────────────────────────────────────────────────────────
-   FIREBASE SETUP  (one-time, free — see README / plan for steps)
+   FIREBASE SETUP — Realtime Database  (one-time, free)
    1. console.firebase.google.com → create a project
-   2. Build → Firestore Database → create (production mode)
+   2. Build → Realtime Database → Create Database (start in locked mode)
    3. Build → Authentication → Sign-in method → enable "Anonymous"
    4. Project settings → Your apps → Web → copy the config below
-   5. Firestore Rules:
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{db}/documents {
-            match /trips/{tripId} {
-              allow read, write: if request.auth != null;
+      (make sure to include the databaseURL value)
+   5. Realtime Database → Rules tab → paste:
+        {
+          "rules": {
+            "trips": {
+              ".read": "auth != null",
+              ".write": "auth != null",
+              ".indexOn": ["updatedAt"]
             }
           }
         }
@@ -322,6 +324,7 @@ input.ambiguous { border-color: var(--gold); }
 const FIREBASE_CONFIG = {
   apiKey:            "PASTE_API_KEY",
   authDomain:        "PASTE_PROJECT.firebaseapp.com",
+  databaseURL:       "https://PASTE_PROJECT-default-rtdb.firebaseio.com",
   projectId:         "PASTE_PROJECT_ID",
   storageBucket:     "PASTE_PROJECT.appspot.com",
   messagingSenderId: "PASTE_SENDER_ID",
@@ -385,56 +388,51 @@ async function makeFirebaseStore() {
   const { initializeApp } = await import(V + '/firebase-app.js');
   const { getAuth, signInAnonymously, onAuthStateChanged } = await import(V + '/firebase-auth.js');
   const {
-    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
-    getDoc, onSnapshot, serverTimestamp, query, orderBy
-  } = await import(V + '/firebase-firestore.js');
+    getDatabase, ref, child, push, update, remove,
+    get, onValue, query, orderByChild, serverTimestamp
+  } = await import(V + '/firebase-database.js');
 
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
-  const db   = getFirestore(app);
-  const col  = collection(db, 'trips');
+  const db   = getDatabase(app);
+  const tripsRef = ref(db, 'trips');
 
-  // Ensure we're signed in before any read/write (rules require request.auth).
+  // Ensure we're signed in before any read/write (rules require auth != null).
   await new Promise(function (resolve, reject) {
     onAuthStateChanged(auth, function (user) { if (user) resolve(); });
     signInAnonymously(auth).catch(reject);
   });
 
-  function stamp(v) {
-    // Firestore serverTimestamp() -> ms for sorting/UI once resolved; guard nulls.
-    return v && v.toMillis ? v.toMillis() : (v || 0);
-  }
-
   return {
     mode: 'firebase',
     saveTrip: async function (trip) {
-      const ref = await addDoc(col, Object.assign({}, trip, {
+      const newRef = push(tripsRef);
+      await update(newRef, Object.assign({}, trip, {
         createdAt: serverTimestamp(), updatedAt: serverTimestamp()
       }));
-      return ref.id;
+      return newRef.key;
     },
     updateTrip: function (id, partial) {
-      return updateDoc(doc(db, 'trips', id),
+      return update(child(tripsRef, id),
         Object.assign({}, partial, { updatedAt: serverTimestamp() }));
     },
-    deleteTrip: function (id) { return deleteDoc(doc(db, 'trips', id)); },
+    deleteTrip: function (id) { return remove(child(tripsRef, id)); },
     getTrip: async function (id) {
-      const snap = await getDoc(doc(db, 'trips', id));
-      return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+      const snap = await get(child(tripsRef, id));
+      return snap.exists() ? Object.assign({ id: id }, snap.val()) : null;
     },
     onTripsChanged: function (cb) {
-      const q = query(col, orderBy('updatedAt', 'desc'));
-      return onSnapshot(q, function (snap) {
+      // orderByChild sorts ascending; we reverse to newest-first for the UI.
+      const q = query(tripsRef, orderByChild('updatedAt'));
+      return onValue(q, function (snap) {
         const list = [];
-        snap.forEach(function (d) {
-          const data = d.data();
-          list.push(Object.assign({ id: d.id }, data, {
-            updatedAt: stamp(data.updatedAt), createdAt: stamp(data.createdAt)
-          }));
+        snap.forEach(function (childSnap) {
+          list.push(Object.assign({ id: childSnap.key }, childSnap.val()));
         });
+        list.reverse();
         cb(list);
       }, function (err) {
-        console.error('[PackStore] snapshot error', err);
+        console.error('[PackStore] value listener error', err);
         cb([]);
       });
     }
