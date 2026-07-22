@@ -322,13 +322,13 @@ input.ambiguous { border-color: var(--gold); }
    on-device storage (localStorage) so it still works for local testing.
    ────────────────────────────────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey:            "PASTE_API_KEY",
+  apiKey:            "AIzaSyD6N1CjwrRGFzTMHtLCI-w6RFovAyavego",
   authDomain:        "packing-4c17c.firebaseapp.com",
   databaseURL:       "https://packing-4c17c-default-rtdb.firebaseio.com",
   projectId:         "packing-4c17c",
-  storageBucket:     "packing-4c17c.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId:             "PASTE_APP_ID"
+  storageBucket:     "packing-4c17c.firebasestorage.app",
+  messagingSenderId: "734076358140",
+  appId:             "1:734076358140:web:877d9dff6bdc91d3cef679"
 };
 
 const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PASTE") === -1;
@@ -950,7 +950,7 @@ async function makeFirebaseStore() {
     var prevChecked = {};                 // label -> checked
     var prevCustomBySection = {};         // sectionTitle -> [customItem]
     (prevSections || []).forEach(function (s) {
-      s.items.forEach(function (it) {
+      (s.items || []).forEach(function (it) {
         prevChecked[it.label] = it.checked;
         if (it.custom) {
           (prevCustomBySection[s.title] = prevCustomBySection[s.title] || []).push(it);
@@ -1001,6 +1001,7 @@ async function makeFirebaseStore() {
     container.innerHTML = '';
 
     sections.forEach(function (sec) {
+      if (!sec.items) sec.items = [];   // RTDB omits empty arrays
       var div = mk('div', 'pack-section');
 
       var titleRow = mk('div', 'pack-section-title');
@@ -1106,7 +1107,7 @@ async function makeFirebaseStore() {
   function sectionsProgress(secs) {
     var total = 0, checked = 0;
     (secs || []).forEach(function (s) {
-      s.items.forEach(function (it) { total++; if (it.checked) checked++; });
+      (s.items || []).forEach(function (it) { total++; if (it.checked) checked++; });
     });
     return { total: total, checked: checked };
   }
