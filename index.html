@@ -160,8 +160,9 @@ input.ambiguous { border-color: var(--gold); }
 
 /* HEADER NAV */
 #app-header .spacer { flex: 1; }
-#header-trips-btn { background: #ffffff18; color: var(--paper); border: 1.5px solid #ffffff33; border-radius: 7px; padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all .15s; align-self: center; }
-#header-trips-btn:hover { background: #ffffff30; }
+#header-trips-btn, #header-master-btn { background: #ffffff18; color: var(--paper); border: 1.5px solid #ffffff33; border-radius: 7px; padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all .15s; align-self: center; }
+#header-trips-btn:hover, #header-master-btn:hover { background: #ffffff30; }
+#header-master-btn { margin-right: 8px; }
 
 /* PERSON TOGGLE */
 .person-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -207,6 +208,11 @@ input.ambiguous { border-color: var(--gold); }
 #save-status.saved  { color: var(--green); }
 #storage-note { font-size: 0.72rem; color: var(--gold); background: #fdf6e3; border: 1px solid #eadfae; border-radius: 6px; padding: 6px 10px; margin-bottom: 14px; display: none; }
 #storage-note.show { display: block; }
+#master-note { font-size: 0.72rem; color: var(--gold); background: #fdf6e3; border: 1px solid #eadfae; border-radius: 6px; padding: 6px 10px; margin-bottom: 14px; display: none; }
+#master-note.show { display: block; }
+.master-status { font-size: 0.78rem; color: var(--soft); min-height: 1.1em; margin-bottom: 10px; }
+.master-status.saving { color: var(--blue); }
+.master-status.saved  { color: var(--green); }
 </style>
 </head>
 <body>
@@ -215,6 +221,7 @@ input.ambiguous { border-color: var(--gold); }
   <h1>✈ PackRight</h1>
   <span class="tagline">What to Wear</span>
   <span class="spacer"></span>
+  <button id="header-master-btn">📋 Master List</button>
   <button id="header-trips-btn">☰ My Trips</button>
 </div>
 
@@ -235,6 +242,23 @@ input.ambiguous { border-color: var(--gold); }
     </div>
     <div id="trips-loading">⏳ Loading your trips…</div>
     <div id="trips-list"></div>
+  </div>
+
+  <!-- SCREEN · MASTER LIST -->
+  <div class="screen" id="screen-master">
+    <div class="page-title">Master Packing List</div>
+    <div class="page-sub">Your reusable lists. New trips for a person start from their master list — edits here save automatically and sync across devices.</div>
+    <div id="master-note"></div>
+    <div class="person-row" id="master-person-row">
+      <div class="person-btn on" data-person="megan"><span class="p-emoji">👩</span> Megan</div>
+      <div class="person-btn" data-person="erik"><span class="p-emoji">🧔</span> Erik</div>
+      <div class="person-btn" data-person="general"><span class="p-emoji">🌐</span> General</div>
+    </div>
+    <div id="master-save-status" class="master-status"></div>
+    <div id="master-list"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="master-back-btn">← Back to My Trips</button>
+    </div>
   </div>
 
   <!-- SCREEN 1 -->
@@ -336,7 +360,9 @@ const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PAS
 /* Small helper to build a normalized store API shared by both backends. */
 function makeLocalStore() {
   const KEY = 'packright_trips';
+  const MKEY = 'packright_master';
   const listeners = new Set();
+  const mListeners = new Set();
   function readAll() {
     try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
     catch (e) { return {}; }
@@ -352,7 +378,16 @@ function makeLocalStore() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
       : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
   }
-  window.addEventListener('storage', function (e) { if (e.key === KEY) notify(); });
+  function readMaster() {
+    try { return JSON.parse(localStorage.getItem(MKEY) || 'null'); }
+    catch (e) { return null; }
+  }
+  function writeMaster(obj) { localStorage.setItem(MKEY, JSON.stringify(obj)); }
+  function notifyMaster() { const m = readMaster(); mListeners.forEach(function (cb) { cb(m); }); }
+  window.addEventListener('storage', function (e) {
+    if (e.key === KEY) notify();
+    if (e.key === MKEY) notifyMaster();
+  });
 
   return {
     mode: 'local',
@@ -379,6 +414,21 @@ function makeLocalStore() {
     onTripsChanged: function (cb) {
       listeners.add(cb); cb(toList(readAll()));
       return function () { listeners.delete(cb); };
+    },
+    getMasterList: function () { return Promise.resolve(readMaster()); },
+    seedMasterListIfEmpty: function (seed) {
+      if (!readMaster()) { writeMaster(seed); notifyMaster(); }
+      return Promise.resolve();
+    },
+    saveMasterList: function (personKey, sections) {
+      const m = readMaster() || {};
+      m[personKey] = { sections: sections };
+      writeMaster(m); notifyMaster();
+      return Promise.resolve();
+    },
+    onMasterListChanged: function (cb) {
+      mListeners.add(cb); cb(readMaster());
+      return function () { mListeners.delete(cb); };
     }
   };
 }
@@ -388,14 +438,15 @@ async function makeFirebaseStore() {
   const { initializeApp } = await import(V + '/firebase-app.js');
   const { getAuth, signInAnonymously, onAuthStateChanged } = await import(V + '/firebase-auth.js');
   const {
-    getDatabase, ref, child, push, update, remove,
+    getDatabase, ref, child, push, set, update, remove,
     get, onValue, query, orderByChild, serverTimestamp
   } = await import(V + '/firebase-database.js');
 
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
   const db   = getDatabase(app);
-  const tripsRef = ref(db, 'trips');
+  const tripsRef  = ref(db, 'trips');
+  const masterRef = ref(db, 'masterList');
 
   // Ensure we're signed in before any read/write (rules require auth != null).
   await new Promise(function (resolve, reject) {
@@ -435,6 +486,25 @@ async function makeFirebaseStore() {
         console.error('[PackStore] value listener error', err);
         cb([]);
       });
+    },
+    getMasterList: async function () {
+      const snap = await get(masterRef);
+      return snap.exists() ? snap.val() : null;
+    },
+    seedMasterListIfEmpty: async function (seed) {
+      const snap = await get(masterRef);
+      if (!snap.exists()) await set(masterRef, seed);
+    },
+    saveMasterList: function (personKey, sections) {
+      return set(child(masterRef, personKey), { sections: sections });
+    },
+    onMasterListChanged: function (cb) {
+      return onValue(masterRef, function (snap) {
+        cb(snap.exists() ? snap.val() : null);
+      }, function (err) {
+        console.error('[PackStore] master listener error', err);
+        cb(null);
+      });
     }
   };
 }
@@ -472,41 +542,17 @@ async function makeFirebaseStore() {
     { id: 'family',    label: 'Family / Kids',      icon: '👨‍👩‍👧' },
   ];
 
-  /* ── PERSON DEFAULTS ────────────────────────────────────────── */
-  // "Normal packing list" seed per person. Merged into every trip for that
-  // person as an "Essentials" section. Megan's is a placeholder baseline —
-  // replace these strings with her actual normal list any time.
-  var PERSON_DEFAULTS = {
-    erik: [],
-    megan: [
-      'Makeup bag',
-      'Foundation / concealer',
-      'Mascara & eyeliner',
-      'Lipstick / lip balm',
-      'Makeup remover wipes',
-      'Skincare (cleanser, moisturizer, serum)',
-      'Sunscreen (face)',
-      'Hair brush / comb',
-      'Hair dryer',
-      'Hair straightener / curling iron',
-      'Hair ties & clips',
-      'Dry shampoo',
-      'Perfume',
-      'Jewelry (earrings, necklaces)',
-      'Nail file & clippers',
-      'Feminine hygiene products',
-      'Birth control / daily medications',
-      'Contact lenses & solution',
-      'Glasses',
-      'Deodorant',
-      'Toothbrush & toothpaste',
-      'Pajamas / sleepwear',
-      'Robe',
-      'Slippers',
-    ],
-  };
+  var PERSON_LABELS = { erik: 'Erik', megan: 'Megan', general: 'General' };
 
-  var PERSON_LABELS = { erik: 'Erik', megan: 'Megan' };
+  /* ── MASTER PACKING LIST ────────────────────────────────────── */
+  // Seed used to initialize the shared master list in Firebase the first time
+  // (if /masterList is empty). After that the live copy in the database is the
+  // source of truth and is editable in-app on the Master List screen. Imported
+  // from the Hardin Trips app export.
+  var MASTER_SEED = JSON.parse('{"general":{"sections":[{"title":"Documents","items":[]},{"title":"Electronics","items":[]},{"title":"Accessories","items":[]},{"title":"Bags & Carry","items":[]},{"title":"Miscellaneous","items":[]}]},"megan":{"sections":[{"title":"Clothing","items":[{"label":"4 casual outfits"},{"label":"4 nice outfits"},{"label":"1 light rain jacket or packable windbreaker"},{"label":"Denim jacket"},{"label":"3 swimsuits"},{"label":"4 workout outfits"},{"label":"14+ pairs underwear"},{"label":"2–3 bras (including strapless)"},{"label":"Cakes"},{"label":"4–5 pairs socks"},{"label":"Cozy socks (flight)"},{"label":"2 pajama sets"}]},{"title":"Shoes","items":[{"label":"Black Birkenstocks"},{"label":"Tan platforms"},{"label":"Tevas"},{"label":"Gym shoes"},{"label":"Sorel sandals"},{"label":"Beach slides"}]},{"title":"Personal Care & Toiletries","items":[{"label":"Shampoo & conditioner"},{"label":"Body wash"},{"label":"Face wash"},{"label":"Face moisturizer"},{"label":"Makeup & makeup bag"},{"label":"Curling iron"},{"label":"Round brush"},{"label":"Hair ties & claw clip"},{"label":"Makeup wash cloths"},{"label":"Razors"},{"label":"Deodorant"},{"label":"Toothbrush & toothpaste"},{"label":"Contacts"},{"label":"Contact solution"},{"label":"Glasses"},{"label":"Lens cleaning spray"},{"label":"Lens cloth"},{"label":"Sunglasses"},{"label":"Tampons"},{"label":"Nail file & clippers"},{"label":"Tweezers"},{"label":"Nail polish"},{"label":"Nail polish remover"},{"label":"Eyebrow/eyelash serum"},{"label":"Foot scrubber"},{"label":"Allergy pills"},{"label":"Ibuprofen"},{"label":"Senna pills"},{"label":"Vitamins"},{"label":"Bug spray"},{"label":"Sunscreen (SPF 30+)"},{"label":"Lip balm with SPF"},{"label":"Band-Aids & blister patches"},{"label":"Lube & toy"}]},{"title":"Electronics","items":[{"label":"Phone charger"},{"label":"Laptop/tablet + charger"},{"label":"Portable battery/power bank"},{"label":"EU plug adapter"},{"label":"AirPods/headphones"},{"label":"Oura charger"}]},{"title":"Miscellaneous","items":[{"label":"Passport"},{"label":"Hiking backpack"},{"label":"Beach tote"},{"label":"Small laundry bag"},{"label":"Delicates laundry bag"},{"label":"Collapsible laundry basket"},{"label":"Water bottle"},{"label":"Portable speaker"},{"label":"Workout bands"},{"label":"Book"},{"label":"Magazines"},{"label":"Earplugs"},{"label":"Eye mask"},{"label":"Sun hat"},{"label":"Baseball hat"},{"label":"Gum & mints"},{"label":"Salt packets"},{"label":"Lint roller"},{"label":"Sonder cushion"},{"label":"Jewelry"}]}]},"erik":{"sections":[{"title":"Clothing","items":[{"label":"5 t-shirts or casual tops (breathable, for warm days)"},{"label":"2 button-down shirts or polos (Lyon dinners, nicer outings)"},{"label":"3 pairs of shorts (Luberon, Bandol, warm days)"},{"label":"1 pair of linen or chino trousers (travel, cooler days, dinners)"},{"label":"1 pair of jeans (Lyon, cooler days, Berlin)"},{"label":"1 packable rain jacket or windbreaker"},{"label":"2 swimsuit/board shorts"},{"label":"7 pairs of underwear"},{"label":"7 pairs of socks"},{"label":"2 pair of athletic/workout shorts or pants"},{"label":"2 set of pajamas or sleep shorts"}]},{"title":"Shoes","items":[{"label":"1 pair of trail shoes or sturdy sneakers (Luberon hiking)"},{"label":"1 pair of casual sandals (beach, Côte d\'Azur, hotel)"},{"label":"1 pair boat shoes"}]},{"title":"Toiletries","items":[{"label":"Razor & shaving cream/gel"},{"label":"Deodorant"},{"label":"Toothbrush & toothpaste"},{"label":"Hair product (if used)"}]},{"title":"Personal Care","items":[{"label":"Sunglasses"},{"label":"🧢 hat"}]}]}}');
+
+  // Live master list (mirrors /masterList in the database). Populated on load.
+  var masterList = null;
 
   /* ── STATE ──────────────────────────────────────────────────── */
   var _nextId   = 0;
@@ -550,7 +596,8 @@ async function makeFirebaseStore() {
     document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
     document.getElementById('screen-' + n).classList.add('active');
     // The numbered step tabs only apply to the New/Edit Trip flow (screens 1–3).
-    document.getElementById('tabs').style.display = (n === 0) ? 'none' : 'flex';
+    var isStep = (n === 1 || n === 2 || n === 3);
+    document.getElementById('tabs').style.display = isStep ? 'flex' : 'none';
     document.querySelectorAll('#tabs .tab').forEach(function (t, i) {
       t.classList.remove('active', 'done');
       if (i + 1 === n) t.classList.add('active');
@@ -941,48 +988,90 @@ async function makeFirebaseStore() {
     return sections;
   }
 
-  /* ── SECTION MODEL ───────────────────────────────────────────── */
-  // Convert raw {title, icon, items:[string]} sections into the editable/
-  // savable model {title, icon, items:[{label,checked,custom}]}, merge the
-  // selected person's default "Essentials", and preserve prior check state
-  // and any custom items (matched by label) so regenerating never wipes work.
-  function materializeSections(raw, prevSections) {
-    var prevChecked = {};                 // label -> checked
-    var prevCustomBySection = {};         // sectionTitle -> [customItem]
+  /* ── TRIP SECTION MODEL ──────────────────────────────────────── */
+  function personHasMaster(p) {
+    return !!(masterList && masterList[p] &&
+      (masterList[p].sections || []).some(function (s) { return (s.items || []).length; }));
+  }
+
+  function gatherActivities() {
+    var a = {};
+    cities.forEach(function (c) {
+      for (var d = 0; d < c.nights; d++) {
+        var acts = dayActs[c.id + '-' + d] || {};
+        Object.keys(acts).forEach(function (k) { if (acts[k]) a[k] = true; });
+      }
+    });
+    return a;
+  }
+
+  function computeConditions(wxMap) {
+    var list = Object.keys(wxMap).map(function (k) { return wxMap[k]; }).filter(Boolean);
+    var maxHi = list.length ? Math.max.apply(null, list.map(function (w) { return w.avgHigh; })) : 70;
+    var minLo = list.length ? Math.min.apply(null, list.map(function (w) { return w.avgLow;  })) : 55;
+    var maxRn = list.length ? Math.max.apply(null, list.map(function (w) { return w.maxRain; })) : 0;
+    var hot = maxHi >= 82, cold = minLo <= 45;
+    return { hot: hot, cold: cold, mild: !hot && !cold, rainy: maxRn > 40 };
+  }
+
+  // Weather/activity items a curated (summer-oriented) master list usually lacks.
+  function buildTripExtras(wxMap) {
+    var c = computeConditions(wxMap), A = gatherActivities(), e = [];
+    if (c.cold) e.push('Warm coat or parka', 'Insulating fleece or mid-layer', 'Thermal base layers',
+      'Warm hat / beanie', 'Gloves', 'Scarf', 'Wool or thermal socks');
+    if (c.rainy) e.push('Compact travel umbrella', 'Waterproof shoes or boots');
+    if (A.business) e.push('Blazer / sport coat', 'Dress shoes');
+    if (A.hiking) e.push('Daypack', 'Blister care / moleskin');
+    if (A.concert || A.nightlife || A.dining || A.wine) e.push('Dressy evening outfit');
+    return e;
+  }
+
+  // Build the trip's editable sections: the person's master list as the BASE,
+  // plus a "Trip Extras" section of weather/activity items it lacks. Preserves
+  // prior check state and previously-added custom items when regenerating.
+  // Persons without a master list fall back to the generic generator.
+  function buildTripSections(p, prevSections, wxMap) {
+    var prevChecked = {}, prevCustomBySection = {};
     (prevSections || []).forEach(function (s) {
       (s.items || []).forEach(function (it) {
         prevChecked[it.label] = it.checked;
-        if (it.custom) {
-          (prevCustomBySection[s.title] = prevCustomBySection[s.title] || []).push(it);
-        }
+        if (it.custom) (prevCustomBySection[s.title] = prevCustomBySection[s.title] || []).push(it);
       });
     });
 
-    var out = raw.map(function (sec) {
-      return {
-        title: sec.title, icon: sec.icon,
-        items: sec.items.map(function (lbl) {
-          return { label: lbl, checked: !!prevChecked[lbl], custom: false };
-        })
-      };
-    });
-
-    // Person's normal/baseline list → an "Essentials" section.
-    var defs = PERSON_DEFAULTS[person] || [];
+    var out = [];
     var have = {};
-    out.forEach(function (s) { s.items.forEach(function (it) { have[it.label.toLowerCase()] = true; }); });
-    var essentials = [];
-    defs.forEach(function (lbl) {
-      if (!have[lbl.toLowerCase()]) {
-        essentials.push({ label: lbl, checked: !!prevChecked[lbl], custom: false });
-        have[lbl.toLowerCase()] = true;
-      }
-    });
-    if (essentials.length) {
-      out.push({ title: PERSON_LABELS[person] + "'s Essentials", icon: '💼', items: essentials });
+    function addSection(title, icon, labels) {
+      var items = [];
+      labels.forEach(function (lbl) {
+        if (!have[lbl.toLowerCase()]) {
+          items.push({ label: lbl, checked: !!prevChecked[lbl], custom: false });
+          have[lbl.toLowerCase()] = true;
+        }
+      });
+      if (items.length) out.push({ title: title, icon: icon, items: items });
     }
 
-    // Re-attach any custom items the user added previously.
+    if (personHasMaster(p)) {
+      // Base = this person's master list (deep-copied into the trip).
+      (masterList[p].sections || []).forEach(function (s) {
+        addSection(s.title, s.icon, (s.items || []).map(function (i) { return i.label; }));
+      });
+      // Shared "General" items apply to everyone (empty today; forward-compatible).
+      if (masterList.general) {
+        (masterList.general.sections || []).forEach(function (s) {
+          if ((s.items || []).length) addSection(s.title, s.icon, s.items.map(function (i) { return i.label; }));
+        });
+      }
+    } else {
+      // No master list for this person → generic weather/activity generator.
+      buildPackingList(wxMap).forEach(function (s) { addSection(s.title, s.icon, s.items); });
+    }
+
+    // Weather & activity extras the master list likely doesn't cover.
+    addSection('Trip Extras · Weather & Activities', '🧳', buildTripExtras(wxMap));
+
+    // Re-attach any custom items the user previously added.
     Object.keys(prevCustomBySection).forEach(function (title) {
       var target = out.filter(function (s) { return s.title === title; })[0];
       if (!target) { target = { title: title, icon: '✚', items: [] }; out.push(target); }
@@ -995,27 +1084,44 @@ async function makeFirebaseStore() {
     return out;
   }
 
-  /* ── RENDER PACKING LIST (editable, from `sections` model) ────── */
-  function renderPackingList() {
-    var container = document.getElementById('pack-list');
+  /* ── REUSABLE SECTIONED-LIST EDITOR ──────────────────────────── */
+  // Renders an editable list of sections into `container`. Shared by the trip
+  // packing list and the master-list editor. opts:
+  //   checkboxes        show pack checkboxes + strike-through (trip only)
+  //   allowAddSection   show an "add section" control at the bottom (master)
+  //   allowDeleteSection show a remove-section control per section (master)
+  //   onChange()        called after any add/rename/delete/check to persist
+  function renderSectionedList(container, secs, opts) {
+    opts = opts || {};
     container.innerHTML = '';
+    function rerender() { renderSectionedList(container, secs, opts); }
+    var onChange = opts.onChange || function () {};
 
-    sections.forEach(function (sec) {
+    (secs || []).forEach(function (sec) {
       if (!sec.items) sec.items = [];   // RTDB omits empty arrays
       var div = mk('div', 'pack-section');
 
       var titleRow = mk('div', 'pack-section-title');
-      var icon = mk('span'); icon.textContent = sec.icon;
-      titleRow.appendChild(icon);
-      titleRow.appendChild(document.createTextNode(' ' + sec.title));
+      if (sec.icon) { var icon = mk('span'); icon.textContent = sec.icon; titleRow.appendChild(icon); }
+      titleRow.appendChild(document.createTextNode((sec.icon ? ' ' : '') + sec.title));
       var cnt = mk('span', 'pack-count');
       cnt.textContent = sec.items.length + ' items';
       titleRow.appendChild(cnt);
+      if (opts.allowDeleteSection) {
+        var secDel = mk('button', 'item-tool del'); secDel.textContent = '✕'; secDel.title = 'Remove section';
+        secDel.style.marginLeft = '8px';
+        secDel.addEventListener('click', function () {
+          if (!window.confirm('Remove the "' + sec.title + '" section and its items?')) return;
+          var i = secs.indexOf(sec); if (i > -1) secs.splice(i, 1);
+          onChange(); rerender();
+        });
+        titleRow.appendChild(secDel);
+      }
       div.appendChild(titleRow);
 
       var grid = mk('div', 'pack-grid');
       sec.items.forEach(function (item) {
-        grid.appendChild(renderItemRow(sec, item));
+        grid.appendChild(buildItemRow(sec, item, opts, onChange, rerender));
       });
       div.appendChild(grid);
 
@@ -1028,9 +1134,7 @@ async function makeFirebaseStore() {
         if (!val) return;
         sec.items.push({ label: val, checked: false, custom: true });
         addInput.value = '';
-        renderPackingList();
-        updateProgress();
-        scheduleSave();
+        onChange(); rerender();
       }
       addBtn.addEventListener('click', commitAdd);
       addInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') commitAdd(); });
@@ -1040,50 +1144,64 @@ async function makeFirebaseStore() {
       container.appendChild(div);
     });
 
-    updateProgress();
+    if (opts.allowAddSection) {
+      var secRow = mk('div', 'add-item-row');
+      var secInput = mk('input'); secInput.type = 'text'; secInput.placeholder = 'Add a section…';
+      var secBtn = mk('button', 'add-item-btn'); secBtn.textContent = '+ Section';
+      function commitSection() {
+        var val = secInput.value.trim();
+        if (!val) return;
+        secs.push({ title: val, items: [] });
+        secInput.value = '';
+        onChange(); rerender();
+      }
+      secBtn.addEventListener('click', commitSection);
+      secInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') commitSection(); });
+      secRow.appendChild(secInput); secRow.appendChild(secBtn);
+      container.appendChild(secRow);
+    }
   }
 
-  function renderItemRow(sec, item) {
-    var row = mk('div', 'pack-item' + (item.checked ? ' done' : ''));
-    var cb  = mk('input'); cb.type = 'checkbox'; cb.checked = !!item.checked;
+  function buildItemRow(sec, item, opts, onChange, rerender) {
+    var row = mk('div', 'pack-item' + (opts.checkboxes && item.checked ? ' done' : ''));
+    var cb = null;
+    if (opts.checkboxes) {
+      cb = mk('input'); cb.type = 'checkbox'; cb.checked = !!item.checked;
+      cb.addEventListener('change', function () {
+        item.checked = cb.checked;
+        row.classList.toggle('done', cb.checked);
+        onChange();   // caller updates progress + persists; no full rerender (keeps it smooth)
+      });
+      row.addEventListener('click', function (e) {
+        if (e.target === cb || e.target.closest('.item-tools')) return;
+        if (row.querySelector('.item-edit-input')) return;
+        cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));
+      });
+    }
+
     var lbl = mk('span', 'item-label'); lbl.textContent = item.label;
 
-    cb.addEventListener('change', function () {
-      item.checked = cb.checked;
-      row.classList.toggle('done', cb.checked);
-      updateProgress();
-      scheduleSave();
-    });
-    row.addEventListener('click', function (e) {
-      if (e.target === cb || e.target.closest('.item-tools')) return;
-      if (row.querySelector('.item-edit-input')) return; // don't toggle while editing
-      cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));
-    });
-
-    // Tools: rename + delete
     var tools = mk('div', 'item-tools');
     var editBtn = mk('button', 'item-tool'); editBtn.textContent = '✎'; editBtn.title = 'Rename';
     var delBtn  = mk('button', 'item-tool del'); delBtn.textContent = '✕'; delBtn.title = 'Remove';
-
     editBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      startRename(row, sec, item, lbl);
+      startRename(row, item, lbl, onChange, rerender);
     });
     delBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       var i = sec.items.indexOf(item);
       if (i > -1) sec.items.splice(i, 1);
-      renderPackingList();
-      updateProgress();
-      scheduleSave();
+      onChange(); rerender();
     });
-
     tools.appendChild(editBtn); tools.appendChild(delBtn);
-    row.appendChild(cb); row.appendChild(lbl); row.appendChild(tools);
+
+    if (cb) row.appendChild(cb);
+    row.appendChild(lbl); row.appendChild(tools);
     return row;
   }
 
-  function startRename(row, sec, item, lbl) {
+  function startRename(row, item, lbl, onChange, rerender) {
     var input = mk('input', 'item-edit-input');
     input.type = 'text'; input.value = item.label;
     row.replaceChild(input, lbl);
@@ -1093,15 +1211,22 @@ async function makeFirebaseStore() {
       if (done) return; done = true;
       var val = input.value.trim();
       if (val) item.label = val;
-      renderPackingList();
-      updateProgress();
-      scheduleSave();
+      onChange(); rerender();
     }
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') commit();
-      else if (e.key === 'Escape') { done = true; renderPackingList(); }
+      else if (e.key === 'Escape') { done = true; rerender(); }
     });
+  }
+
+  /* ── TRIP PACKING LIST (uses the shared editor) ──────────────── */
+  function renderPackingList() {
+    renderSectionedList(document.getElementById('pack-list'), sections, {
+      checkboxes: true,
+      onChange: function () { updateProgress(); scheduleSave(); }
+    });
+    updateProgress();
   }
 
   function sectionsProgress(secs) {
@@ -1199,9 +1324,9 @@ async function makeFirebaseStore() {
 
     chain.then(function () {
       renderWeatherRows(weatherSummary);
-      var raw = buildPackingList(wxMap);
-      // Preserve prior check state / custom items when re-generating.
-      sections = materializeSections(raw, sections);
+      // Master list is the base (for Erik/Megan) + weather/activity extras;
+      // prior check state and custom items are preserved on re-generate.
+      sections = buildTripSections(person, sections, wxMap);
       loadMsg.classList.remove('show');
       ctrls.style.display = 'flex';
       renderPackingList();
@@ -1355,21 +1480,91 @@ async function makeFirebaseStore() {
   }
 
   function bulkSetChecked(val) {
-    sections.forEach(function (s) { s.items.forEach(function (it) { it.checked = val; }); });
+    sections.forEach(function (s) { (s.items || []).forEach(function (it) { it.checked = val; }); });
     renderPackingList();
     updateProgress();
     scheduleSave();
+  }
+
+  /* ── MASTER LIST EDITOR ──────────────────────────────────────── */
+  var currentMasterPerson = 'megan';
+  var masterSaveTimer = null;
+
+  function ensureMaster() {
+    if (!masterList) masterList = JSON.parse(JSON.stringify(MASTER_SEED));
+    if (!masterList[currentMasterPerson]) masterList[currentMasterPerson] = { sections: [] };
+    if (!masterList[currentMasterPerson].sections) masterList[currentMasterPerson].sections = [];
+  }
+
+  function showMasterList() {
+    ensureMaster();
+    document.querySelectorAll('#master-person-row .person-btn').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-person') === currentMasterPerson);
+    });
+    setMasterStatus('', '');
+    renderMasterEditor();
+    goTo('master');
+  }
+
+  function renderMasterEditor() {
+    ensureMaster();
+    var secs = masterList[currentMasterPerson].sections;
+    var personKey = currentMasterPerson;
+    renderSectionedList(document.getElementById('master-list'), secs, {
+      checkboxes: false,
+      allowAddSection: true,
+      allowDeleteSection: true,
+      onChange: function () { scheduleMasterSave(personKey, secs); }
+    });
+  }
+
+  function setMasterPerson(p) {
+    currentMasterPerson = p;
+    showMasterList();
+  }
+
+  function setMasterStatus(kind, text) {
+    var el = document.getElementById('master-save-status');
+    el.className = 'master-status ' + (kind || '');
+    el.textContent = text || '';
+  }
+
+  function scheduleMasterSave(personKey, secs) {
+    if (!Store) return;
+    setMasterStatus('saving', '⏳ Saving…');
+    clearTimeout(masterSaveTimer);
+    masterSaveTimer = setTimeout(function () { masterSaveNow(personKey, secs); }, 600);
+  }
+
+  function masterSaveNow(personKey, secs) {
+    if (!Store) return;
+    // Strip transient flags before persisting the master list.
+    var clean = (secs || []).map(function (s) {
+      return { title: s.title, items: (s.items || []).map(function (it) { return { label: it.label }; }) };
+    });
+    Store.saveMasterList(personKey, clean).then(function () {
+      setMasterStatus('saved', '✓ Saved');
+    }).catch(function (err) {
+      console.error('[master save] failed', err);
+      setMasterStatus('', '⚠ Save failed — add /masterList to your database rules.');
+    });
   }
 
   /* ── INIT ────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     // Header nav
     document.getElementById('header-trips-btn').addEventListener('click', function () { goTo(0); });
+    document.getElementById('header-master-btn').addEventListener('click', showMasterList);
+    document.getElementById('master-back-btn').addEventListener('click', function () { goTo(0); });
     document.getElementById('new-trip-btn').addEventListener('click', startNewTrip);
 
-    // Person toggle
+    // Person toggle (new trip)
     document.querySelectorAll('#person-row .person-btn').forEach(function (btn) {
       btn.addEventListener('click', function () { setPerson(btn.getAttribute('data-person')); });
+    });
+    // Person toggle (master list)
+    document.querySelectorAll('#master-person-row .person-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { setMasterPerson(btn.getAttribute('data-person')); });
     });
     // Trip name
     document.getElementById('trip-name-input').addEventListener('input', function (e) {
@@ -1396,6 +1591,24 @@ async function makeFirebaseStore() {
         note.classList.add('show');
       }
       store.onTripsChanged(renderTripsList);
+
+      // Master list: seed on first run, then keep a live copy for trip-building
+      // and the editor.
+      store.seedMasterListIfEmpty(MASTER_SEED).catch(function (e) {
+        console.warn('[master] seed skipped (database rules for /masterList?)', e);
+        var mnote = document.getElementById('master-note');
+        mnote.textContent = '⚠ Can’t reach the shared master list yet — add a /masterList rule in your database (read/write if auth != null). Showing the built-in copy for now; edits won’t sync until that’s set.';
+        mnote.classList.add('show');
+      });
+      store.onMasterListChanged(function (m) {
+        masterList = m || JSON.parse(JSON.stringify(MASTER_SEED));
+        // Live-refresh the editor only when it's open and nothing is being typed.
+        if (document.getElementById('screen-master').classList.contains('active')) {
+          var ml = document.getElementById('master-list');
+          var editing = document.activeElement && ml.contains(document.activeElement);
+          if (!editing) renderMasterEditor();
+        }
+      });
     });
   });
 
