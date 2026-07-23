@@ -172,6 +172,16 @@ input.ambiguous { border-color: var(--gold); }
 
 /* TRIP NAME */
 .trip-name-wrap { margin-bottom: 22px; }
+.trip-name-wrap label.field-label { font-size: 0.72rem; color: var(--ink); }
+.req { color: var(--accent); font-weight: 700; }
+#trip-name-input {
+  background: white; border: 2px solid var(--blue); border-radius: 8px;
+  padding: 12px 14px; font-weight: 500; box-shadow: 0 2px 8px #3d6b8f1a;
+}
+#trip-name-input:focus { border-color: var(--accent); }
+#trip-name-input.invalid { border-color: var(--red); background: #fff6f5; }
+.field-error { display: none; color: var(--red); font-size: 0.79rem; font-weight: 600; margin-top: 6px; }
+.field-error.show { display: block; }
 
 /* MY TRIPS */
 .trips-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -284,8 +294,9 @@ input.ambiguous { border-color: var(--gold); }
       <div class="person-btn" data-person="megan"><span class="p-emoji">👩</span> Megan</div>
     </div>
     <div class="trip-name-wrap">
-      <label class="field-label" for="trip-name-input">Trip name</label>
+      <label class="field-label" for="trip-name-input">Trip name <span class="req">*</span></label>
       <input type="text" id="trip-name-input" placeholder="e.g. Paris — July">
+      <div class="field-error" id="trip-name-err">Please name this trip so you can find it later.</div>
     </div>
     <div class="page-title" style="font-size:1.25rem;margin-top:6px;">Where are you headed?</div>
     <div class="page-sub">Enter each destination — we'll look it up so you get the right weather.</div>
@@ -702,6 +713,11 @@ async function makeFirebaseStore() {
     if (result.admin1) label += ', ' + result.admin1;
     if (result.country) label += ', ' + result.country;
     city.geoLabel = label;
+    // Replace whatever partial or misspelled text was typed (e.g. "Tellur")
+    // with the resolved city name so the field — and every downstream screen
+    // (day blocks, weather, trip title) — shows the real place ("Telluride").
+    city.name = result.name;
+    inputEl.value = result.name;
     inputEl.classList.remove('ambiguous');
     inputEl.classList.add('confirmed');
     statusEl.textContent = '✓ ' + label;
@@ -825,6 +841,19 @@ async function makeFirebaseStore() {
     var errEl = document.getElementById('err-1');
     errEl.classList.remove('show');
     errEl.textContent = '';
+
+    // Trip name is required.
+    var nameEl  = document.getElementById('trip-name-input');
+    var nameErr = document.getElementById('trip-name-err');
+    nameErr.classList.remove('show');
+    nameEl.classList.remove('invalid');
+    if (!nameEl.value.trim()) {
+      nameEl.classList.add('invalid');
+      nameErr.classList.add('show');
+      nameEl.focus();
+      nameEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     if (cities.length === 0 || cities.some(function (c) { return !c.name.trim(); })) {
       errEl.textContent = 'Please enter a city name for every destination.';
@@ -1369,6 +1398,8 @@ async function makeFirebaseStore() {
     currentTripId = null; tripTitle = '';
     setPerson('erik');
     document.getElementById('trip-name-input').value = '';
+    document.getElementById('trip-name-input').classList.remove('invalid');
+    document.getElementById('trip-name-err').classList.remove('show');
     document.getElementById('err-1').classList.remove('show');
     setSaveStatus('', '');
     addCity();
@@ -1563,6 +1594,10 @@ async function makeFirebaseStore() {
     // Trip name
     document.getElementById('trip-name-input').addEventListener('input', function (e) {
       tripTitle = e.target.value;
+      if (e.target.value.trim()) {
+        e.target.classList.remove('invalid');
+        document.getElementById('trip-name-err').classList.remove('show');
+      }
     });
 
     // Flow buttons
