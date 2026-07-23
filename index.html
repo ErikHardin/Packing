@@ -26,13 +26,13 @@
   --red:    #b03a2e;
 }
 
-body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
 
 /* HEADER */
 #app-header {
   background: var(--ink); color: var(--paper);
   padding: 22px 32px 18px; border-bottom: 3px solid var(--accent);
-  display: flex; align-items: baseline; gap: 14px;
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
 }
 #app-header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; }
 #app-header .tagline { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
@@ -69,7 +69,7 @@ label.field-label { display: block; font-size: 0.67rem; letter-spacing: 0.08em; 
 
 input[type=text], input[type=date], input[type=number] {
   width: 100%; padding: 8px 11px; border: 1.5px solid var(--cream); border-radius: 6px;
-  font-family: 'DM Sans', sans-serif; font-size: 0.92rem;
+  font-family: 'DM Sans', sans-serif; font-size: 16px; /* >=16px prevents iOS auto-zoom on focus */
   background: var(--paper); color: var(--ink); outline: none; transition: border-color .2s;
   -webkit-appearance: none; appearance: none;
 }
@@ -196,9 +196,9 @@ input.ambiguous { border-color: var(--gold); }
 .item-tool { background: none; border: none; cursor: pointer; color: var(--soft); font-size: 0.85rem; padding: 2px 5px; border-radius: 4px; line-height: 1; }
 .item-tool:hover { color: var(--accent); background: var(--cream); }
 .item-tool.del:hover { color: var(--red); }
-.item-edit-input { flex: 1; padding: 4px 8px; border: 1.5px solid var(--blue); border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 0.87rem; background: white; }
+.item-edit-input { flex: 1; padding: 4px 8px; border: 1.5px solid var(--blue); border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 16px; background: white; }
 .add-item-row { display: flex; gap: 6px; margin-top: 8px; padding: 0 10px; }
-.add-item-row input { flex: 1; padding: 6px 10px; font-size: 0.85rem; }
+.add-item-row input { flex: 1; padding: 6px 10px; font-size: 16px; }
 .add-item-btn { background: transparent; color: var(--blue); border: 1.5px dashed var(--blue); border-radius: 6px; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .add-item-btn:hover { background: #e8f0f7; }
 
@@ -213,6 +213,19 @@ input.ambiguous { border-color: var(--gold); }
 .master-status { font-size: 0.78rem; color: var(--soft); min-height: 1.1em; margin-bottom: 10px; }
 .master-status.saving { color: var(--blue); }
 .master-status.saved  { color: var(--green); }
+
+/* MOBILE — keep the header/tabs from overflowing on narrow phones */
+@media (max-width: 560px) {
+  #app-header { padding: 16px 16px 13px; gap: 8px 12px; }
+  #app-header h1 { font-size: 1.55rem; }
+  #app-header .tagline { font-size: 0.6rem; letter-spacing: 0.12em; }
+  #app-header .spacer { flex: 1 0 100%; height: 0; }
+  #header-trips-btn, #header-master-btn { padding: 6px 11px; font-size: 0.66rem; }
+  #tabs { padding: 0 12px; }
+  .tab { padding: 9px 11px; font-size: 0.62rem; }
+  #main { padding: 26px 14px 70px; }
+  .field-row { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
@@ -708,10 +721,10 @@ async function makeFirebaseStore() {
         d.setDate(d.getDate() + lastNights);
         nextStartDate = d.toISOString().slice(0, 10);
       } else {
-        nextStartDate = todayPlus(14);
+        nextStartDate = todayPlus(0);
       }
     } else {
-      nextStartDate = todayPlus(14);
+      nextStartDate = todayPlus(0);
     }
     var city = { id: uid(), name: '', nights: '', startDate: nextStartDate, geo: null, geoLabel: '' };
     cities.push(city);
@@ -994,42 +1007,17 @@ async function makeFirebaseStore() {
       (masterList[p].sections || []).some(function (s) { return (s.items || []).length; }));
   }
 
-  function gatherActivities() {
-    var a = {};
-    cities.forEach(function (c) {
-      for (var d = 0; d < c.nights; d++) {
-        var acts = dayActs[c.id + '-' + d] || {};
-        Object.keys(acts).forEach(function (k) { if (acts[k]) a[k] = true; });
-      }
-    });
-    return a;
-  }
+  // Sections of the master list that describe what to WEAR — these are replaced
+  // by the weather/activity generator so the list actually adapts to the trip.
+  // Everything else on the master list (toiletries, electronics, docs…) is kept.
+  var WEAR_SECTIONS = { 'clothing': 1, 'shoes': 1, 'footwear': 1, 'outerwear': 1 };
 
-  function computeConditions(wxMap) {
-    var list = Object.keys(wxMap).map(function (k) { return wxMap[k]; }).filter(Boolean);
-    var maxHi = list.length ? Math.max.apply(null, list.map(function (w) { return w.avgHigh; })) : 70;
-    var minLo = list.length ? Math.min.apply(null, list.map(function (w) { return w.avgLow;  })) : 55;
-    var maxRn = list.length ? Math.max.apply(null, list.map(function (w) { return w.maxRain; })) : 0;
-    var hot = maxHi >= 82, cold = minLo <= 45;
-    return { hot: hot, cold: cold, mild: !hot && !cold, rainy: maxRn > 40 };
-  }
-
-  // Weather/activity items a curated (summer-oriented) master list usually lacks.
-  function buildTripExtras(wxMap) {
-    var c = computeConditions(wxMap), A = gatherActivities(), e = [];
-    if (c.cold) e.push('Warm coat or parka', 'Insulating fleece or mid-layer', 'Thermal base layers',
-      'Warm hat / beanie', 'Gloves', 'Scarf', 'Wool or thermal socks');
-    if (c.rainy) e.push('Compact travel umbrella', 'Waterproof shoes or boots');
-    if (A.business) e.push('Blazer / sport coat', 'Dress shoes');
-    if (A.hiking) e.push('Daypack', 'Blister care / moleskin');
-    if (A.concert || A.nightlife || A.dining || A.wine) e.push('Dressy evening outfit');
-    return e;
-  }
-
-  // Build the trip's editable sections: the person's master list as the BASE,
-  // plus a "Trip Extras" section of weather/activity items it lacks. Preserves
-  // prior check state and previously-added custom items when regenerating.
-  // Persons without a master list fall back to the generic generator.
+  // Build the trip's editable sections by BLENDING two sources:
+  //   1. Clothing & Footwear generated from the forecast + selected activities
+  //      (so picking activities / different weather visibly changes the list).
+  //   2. The person's personal essentials from their master list — toiletries,
+  //      electronics, documents, etc. — appended as-is.
+  // Preserves prior check state and previously-added custom items on re-generate.
   function buildTripSections(p, prevSections, wxMap) {
     var prevChecked = {}, prevCustomBySection = {};
     (prevSections || []).forEach(function (s) {
@@ -1049,27 +1037,22 @@ async function makeFirebaseStore() {
           have[lbl.toLowerCase()] = true;
         }
       });
-      if (items.length) out.push({ title: title, icon: icon, items: items });
+      if (items.length) out.push({ title: title, icon: icon || '', items: items });
     }
 
-    if (personHasMaster(p)) {
-      // Base = this person's master list (deep-copied into the trip).
-      (masterList[p].sections || []).forEach(function (s) {
+    // 1. Weather + activity driven Clothing & Footwear (the core of the app).
+    buildPackingList(wxMap).forEach(function (s) { addSection(s.title, s.icon, s.items); });
+
+    // 2. The person's non-clothing essentials from their master list.
+    function appendEssentials(personKey) {
+      if (!personKey || !masterList || !masterList[personKey]) return;
+      (masterList[personKey].sections || []).forEach(function (s) {
+        if (WEAR_SECTIONS[(s.title || '').trim().toLowerCase()]) return; // clothing/footwear come from the generator
         addSection(s.title, s.icon, (s.items || []).map(function (i) { return i.label; }));
       });
-      // Shared "General" items apply to everyone (empty today; forward-compatible).
-      if (masterList.general) {
-        (masterList.general.sections || []).forEach(function (s) {
-          if ((s.items || []).length) addSection(s.title, s.icon, s.items.map(function (i) { return i.label; }));
-        });
-      }
-    } else {
-      // No master list for this person → generic weather/activity generator.
-      buildPackingList(wxMap).forEach(function (s) { addSection(s.title, s.icon, s.items); });
     }
-
-    // Weather & activity extras the master list likely doesn't cover.
-    addSection('Trip Extras · Weather & Activities', '🧳', buildTripExtras(wxMap));
+    appendEssentials(p);
+    appendEssentials('general'); // shared items everyone should pack
 
     // Re-attach any custom items the user previously added.
     Object.keys(prevCustomBySection).forEach(function (title) {
@@ -1251,6 +1234,17 @@ async function makeFirebaseStore() {
     el.className = kind || '';
     el.textContent = text || '';
   }
+  // Firebase Realtime Database rejects any write containing `undefined`, so scrub
+  // it out of the payload (undefined keys are dropped entirely).
+  function stripUndefined(v) {
+    if (Array.isArray(v)) return v.map(stripUndefined);
+    if (v && typeof v === 'object') {
+      var o = {};
+      Object.keys(v).forEach(function (k) { if (v[k] !== undefined) o[k] = stripUndefined(v[k]); });
+      return o;
+    }
+    return v;
+  }
   function tripPayload() {
     return {
       person: person,
@@ -1273,7 +1267,7 @@ async function makeFirebaseStore() {
   function saveNow() {
     if (!Store) return Promise.resolve();
     clearTimeout(saveTimer);
-    var payload = tripPayload();
+    var payload = stripUndefined(tripPayload());
     var op = currentTripId
       ? Store.updateTrip(currentTripId, payload)
       : Store.saveTrip(payload).then(function (id) { currentTripId = id; });
